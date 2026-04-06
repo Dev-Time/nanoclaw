@@ -28,7 +28,7 @@ import {
 } from './container-runtime.js';
 import { OneCLI } from '@onecli-sh/sdk';
 import { validateAdditionalMounts } from './mount-security.js';
-import { RegisteredGroup } from './types.js';
+import { ModelOverride, RegisteredGroup } from './types.js';
 
 const onecli = new OneCLI({ url: ONECLI_URL });
 
@@ -45,6 +45,7 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   script?: string;
+  modelOverride?: ModelOverride;
 }
 
 export interface ContainerOutput {
@@ -248,18 +249,22 @@ async function buildContainerArgs(
   mounts: VolumeMount[],
   containerName: string,
   agentIdentifier?: string,
+  modelOverride?: ModelOverride,
 ): Promise<string[]> {
   const args: string[] = ['run', '-i', '--rm', '--name', containerName];
 
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
-  // Route API calls through OpenRouter (or any custom base URL) if configured
-  if (ANTHROPIC_BASE_URL) {
-    args.push('-e', `ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}`);
+  // Route API calls to the appropriate provider. Per-invocation overrides take
+  // precedence over the global defaults from .env.
+  const effectiveBaseUrl = modelOverride?.baseUrl ?? ANTHROPIC_BASE_URL;
+  const effectiveModel = modelOverride?.model ?? CLAUDE_CODE_MODEL;
+  if (effectiveBaseUrl) {
+    args.push('-e', `ANTHROPIC_BASE_URL=${effectiveBaseUrl}`);
   }
-  if (CLAUDE_CODE_MODEL) {
-    args.push('-e', `CLAUDE_CODE_MODEL=${CLAUDE_CODE_MODEL}`);
+  if (effectiveModel) {
+    args.push('-e', `CLAUDE_CODE_MODEL=${effectiveModel}`);
   }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
@@ -325,6 +330,7 @@ export async function runContainerAgent(
     mounts,
     containerName,
     agentIdentifier,
+    input.modelOverride,
   );
 
   logger.debug(

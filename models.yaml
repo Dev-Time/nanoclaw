@@ -1,0 +1,24 @@
+# Dynamic LLM routing — @alias message text
+#
+# Each model needs:
+#   alias:    mention trigger (case-insensitive, word characters and hyphens only)
+#   base_url: OpenAI-compatible API base URL
+#   model:    model identifier (supports / and : e.g. openrouter/auto, gemma4:26b)
+#
+# For remote providers, add an OneCLI secret matching the base_url hostname:
+#   onecli secrets create --name "OpenAI" --type anthropic --value sk-... --host-pattern api.openai.com
+#
+# Local models (Ollama, LM Studio) need no credentials — use http://host.docker.internal:<port>/v1
+#
+# Examples:
+# models:
+#   - alias: llama3
+#     base_url: http://host.docker.internal:11434/v1
+#     model: llama3:8b
+#   - alias: auto
+#     base_url: https://openrouter.ai/api/v1
+#     model: openrouter/auto
+#   - alias: gemma
+#     base_url: http://host.docker.internal:11434/v1
+#     model: gemma4:26b
+models: []

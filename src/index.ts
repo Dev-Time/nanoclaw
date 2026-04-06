@@ -63,8 +63,18 @@ import {
 } from './sender-allowlist.js';
 import { startSessionCleanup } from './session-cleanup.js';
 import { startSchedulerLoop } from './task-scheduler.js';
-import { Channel, NewMessage, RegisteredGroup } from './types.js';
+import {
+  Channel,
+  ModelOverride,
+  NewMessage,
+  RegisteredGroup,
+} from './types.js';
 import { logger } from './logger.js';
+import {
+  getAvailableModelAliases,
+  loadModelConfigs,
+  resolveModelAlias,
+} from './model-router.js';
 
 // Re-export for backwards compatibility during refactor
 export { escapeXml, formatMessages } from './router.js';
@@ -77,6 +87,11 @@ let messageLoopRunning = false;
 
 const channels: Channel[] = [];
 const queue = new GroupQueue();
+
+// Pending model overrides: bridges the polling loop to processGroupMessages().
+// Set when startMessageLoop detects an alias on an enqueued message; consumed
+// (and cleared) by processGroupMessages() before spawning the container.
+const pendingModelOverrides = new Map<string, ModelOverride>();
 
 const onecli = new OneCLI({ url: ONECLI_URL });
 
@@ -239,16 +254,53 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
 
   if (missedMessages.length === 0) return true;
 
-  // For non-main groups, check if trigger is required and present
+  // For non-main groups, check if trigger is required and present.
+  // A known model alias also acts as an implicit trigger.
   if (!isMainGroup && group.requiresTrigger !== false) {
     const triggerPattern = getTriggerPattern(group.trigger);
     const allowlistCfg = loadSenderAllowlist();
-    const hasTrigger = missedMessages.some(
+    let hasTrigger = missedMessages.some(
       (m) =>
         triggerPattern.test(m.content.trim()) &&
         (m.is_from_me || isTriggerAllowed(chatJid, m.sender, allowlistCfg)),
     );
+    if (!hasTrigger) {
+      hasTrigger = missedMessages.some((m) => {
+        const r = resolveModelAlias(m.content, group.trigger);
+        return r !== null && r !== 'unknown-alias';
+      });
+    }
     if (!hasTrigger) return true;
+  }
+
+  // Consume any pending override stored by the polling loop, then check the
+  // triggering message itself for a model alias.
+  const pendingOverride = pendingModelOverrides.get(chatJid);
+  pendingModelOverrides.delete(chatJid);
+
+  const triggerMsg = missedMessages[missedMessages.length - 1];
+  const aliasResult = resolveModelAlias(triggerMsg.content, group.trigger);
+
+  if (aliasResult === 'unknown-alias') {
+    const aliases = getAvailableModelAliases();
+    const errorMsg =
+      aliases.length > 0
+        ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
+        : 'No model aliases configured. Add entries to models.yaml.';
+    channel.sendMessage(chatJid, errorMsg).catch((err) =>
+      logger.warn({ chatJid, err }, 'Failed to send unknown-alias error'),
+    );
+    lastAgentTimestamp[chatJid] = triggerMsg.timestamp;
+    saveState();
+    return true;
+  }
+
+  const effectiveOverride: ModelOverride | undefined = aliasResult
+    ? { baseUrl: aliasResult.config.baseUrl, model: aliasResult.config.model }
+    : pendingOverride;
+
+  if (aliasResult) {
+    triggerMsg.content = aliasResult.strippedPrompt;
   }
 
   const prompt = formatMessages(missedMessages, TIMEZONE);
@@ -283,32 +335,38 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
   let hadError = false;
   let outputSentToUser = false;
 
-  const output = await runAgent(group, prompt, chatJid, async (result) => {
-    // Streaming output callback — called for each agent result
-    if (result.result) {
-      const raw =
-        typeof result.result === 'string'
-          ? result.result
-          : JSON.stringify(result.result);
-      // Strip <internal>...</internal> blocks — agent uses these for internal reasoning
-      const text = raw.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
-      logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
-      if (text) {
-        await channel.sendMessage(chatJid, text);
-        outputSentToUser = true;
+  const output = await runAgent(
+    group,
+    prompt,
+    chatJid,
+    async (result) => {
+      // Streaming output callback — called for each agent result
+      if (result.result) {
+        const raw =
+          typeof result.result === 'string'
+            ? result.result
+            : JSON.stringify(result.result);
+        // Strip <internal>...</internal> blocks — agent uses these for internal reasoning
+        const text = raw.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
+        logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
+        if (text) {
+          await channel.sendMessage(chatJid, text);
+          outputSentToUser = true;
+        }
+        // Only reset idle timer on actual results, not session-update markers (result: null)
+        resetIdleTimer();
       }
-      // Only reset idle timer on actual results, not session-update markers (result: null)
-      resetIdleTimer();
-    }
 
-    if (result.status === 'success') {
-      queue.notifyIdle(chatJid);
-    }
+      if (result.status === 'success') {
+        queue.notifyIdle(chatJid);
+      }
 
-    if (result.status === 'error') {
-      hadError = true;
-    }
-  });
+      if (result.status === 'error') {
+        hadError = true;
+      }
+    },
+    effectiveOverride,
+  );
 
   await channel.setTyping?.(chatJid, false);
   if (idleTimer) clearTimeout(idleTimer);
@@ -341,6 +399,7 @@ async function runAgent(
   prompt: string,
   chatJid: string,
   onOutput?: (output: ContainerOutput) => Promise<void>,
+  modelOverride?: ModelOverride,
 ): Promise<'success' | 'error'> {
   const isMain = group.isMain === true;
   const sessionId = sessions[group.folder];
@@ -392,6 +451,7 @@ async function runAgent(
         chatJid,
         isMain,
         assistantName: ASSISTANT_NAME,
+        modelOverride,
       },
       (proc, containerName) =>
         queue.registerProcess(chatJid, proc, containerName, group.folder),
@@ -490,15 +550,22 @@ async function startMessageLoop(): Promise<void> {
           // For non-main groups, only act on trigger messages.
           // Non-trigger messages accumulate in DB and get pulled as
           // context when a trigger eventually arrives.
+          // A known model alias also acts as an implicit trigger.
           if (needsTrigger) {
             const triggerPattern = getTriggerPattern(group.trigger);
             const allowlistCfg = loadSenderAllowlist();
-            const hasTrigger = groupMessages.some(
+            let hasTrigger = groupMessages.some(
               (m) =>
                 triggerPattern.test(m.content.trim()) &&
                 (m.is_from_me ||
                   isTriggerAllowed(chatJid, m.sender, allowlistCfg)),
             );
+            if (!hasTrigger) {
+              hasTrigger = groupMessages.some((m) => {
+                const r = resolveModelAlias(m.content, group.trigger);
+                return r !== null && r !== 'unknown-alias';
+              });
+            }
             if (!hasTrigger) continue;
           }
 
@@ -514,13 +581,41 @@ async function startMessageLoop(): Promise<void> {
             allPending.length > 0 ? allPending : groupMessages;
           const formatted = formatMessages(messagesToSend, TIMEZONE);
 
+          // Check the last message for a model alias before routing.
+          // Unknown aliases get an error reply without spawning a container.
+          const lastMsg = messagesToSend[messagesToSend.length - 1];
+          const loopAliasResult = resolveModelAlias(lastMsg.content, group.trigger);
+
+          if (loopAliasResult === 'unknown-alias') {
+            const aliases = getAvailableModelAliases();
+            const errorMsg =
+              aliases.length > 0
+                ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
+                : 'No model aliases configured. Add entries to models.yaml.';
+            channel
+              .sendMessage(chatJid, errorMsg)
+              .catch((err) =>
+                logger.warn({ chatJid, err }, 'Failed to send unknown-alias error'),
+              );
+            lastAgentTimestamp[chatJid] = lastMsg.timestamp;
+            saveState();
+            continue;
+          }
+
+          if (loopAliasResult) {
+            // Store override so processGroupMessages() picks it up
+            pendingModelOverrides.set(chatJid, {
+              baseUrl: loopAliasResult.config.baseUrl,
+              model: loopAliasResult.config.model,
+            });
+          }
+
           if (queue.sendMessage(chatJid, formatted)) {
             logger.debug(
               { chatJid, count: messagesToSend.length },
               'Piped messages to active container',
             );
-            lastAgentTimestamp[chatJid] =
-              messagesToSend[messagesToSend.length - 1].timestamp;
+            lastAgentTimestamp[chatJid] = lastMsg.timestamp;
             saveState();
             // Show typing indicator while the container processes the piped message
             channel
@@ -573,6 +668,8 @@ async function main(): Promise<void> {
   initDatabase();
   logger.info('Database initialized');
   loadState();
+  const modelAliases = loadModelConfigs();
+  logger.info({ count: modelAliases.length }, 'Model aliases loaded');
 
   // Ensure OneCLI agents exist for all registered groups.
   // Recovers from missed creates (e.g. OneCLI was down at registration time).
