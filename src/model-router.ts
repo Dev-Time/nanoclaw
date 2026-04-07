@@ -36,13 +36,18 @@ export function loadModelConfigs(): ModelConfig[] {
   try {
     parsed = yaml.load(raw);
   } catch (err) {
-    logger.warn({ err }, 'Failed to parse models.yaml — model aliases disabled');
+    logger.warn(
+      { err },
+      'Failed to parse models.yaml — model aliases disabled',
+    );
     cachedConfigs = [];
     return cachedConfigs;
   }
 
   if (!parsed || typeof parsed !== 'object' || !('models' in parsed)) {
-    logger.warn('models.yaml missing top-level "models" key — model aliases disabled');
+    logger.warn(
+      'models.yaml missing top-level "models" key — model aliases disabled',
+    );
     cachedConfigs = [];
     return cachedConfigs;
   }
@@ -50,7 +55,9 @@ export function loadModelConfigs(): ModelConfig[] {
   const rawModels = (parsed as { models: unknown }).models;
   if (!Array.isArray(rawModels)) {
     if (rawModels !== null && rawModels !== undefined) {
-      logger.warn('models.yaml "models" must be a list — model aliases disabled');
+      logger.warn(
+        'models.yaml "models" must be a list — model aliases disabled',
+      );
     }
     cachedConfigs = [];
     return cachedConfigs;
@@ -68,14 +75,21 @@ export function loadModelConfigs(): ModelConfig[] {
       continue;
     }
     if (typeof base_url !== 'string' || !base_url.trim()) {
-      logger.warn({ entry }, 'Skipping model entry — missing or empty "base_url"');
+      logger.warn(
+        { entry },
+        'Skipping model entry — missing or empty "base_url"',
+      );
       continue;
     }
     if (typeof model !== 'string' || !model.trim()) {
       logger.warn({ entry }, 'Skipping model entry — missing or empty "model"');
       continue;
     }
-    configs.push({ alias: alias.trim(), baseUrl: base_url.trim(), model: model.trim() });
+    configs.push({
+      alias: alias.trim(),
+      baseUrl: base_url.trim(),
+      model: model.trim(),
+    });
   }
 
   logger.info({ count: configs.length }, 'Model aliases loaded');

@@ -44,7 +44,10 @@ export function resolveGroupIpcPath(folder: string): string {
   return ipcPath;
 }
 
-export function resolveSlotIpcPath(groupFolder: string, modelKey?: string): string {
+export function resolveSlotIpcPath(
+  groupFolder: string,
+  modelKey?: string,
+): string {
   assertValidGroupFolder(groupFolder);
   const ipcBaseDir = path.resolve(DATA_DIR, 'ipc');
   const dirName = ipcFolderName(groupFolder, modelKey);

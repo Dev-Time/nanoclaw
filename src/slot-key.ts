@@ -14,7 +14,10 @@ export function makeSlotKey(chatJid: string, modelKey?: string): string {
 }
 
 /** Parse a slot key into chatJid and optional modelKey. */
-export function parseSlotKey(slotKey: string): { chatJid: string; modelKey?: string } {
+export function parseSlotKey(slotKey: string): {
+  chatJid: string;
+  modelKey?: string;
+} {
   const idx = slotKey.indexOf(SLOT_SEP);
   if (idx === -1) return { chatJid: slotKey };
   return {

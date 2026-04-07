@@ -21,4 +21,7 @@
 #   - alias: gemma
 #     base_url: http://host.docker.internal:11434/v1
 #     model: gemma4:26b
-models: []
+models:
+  - alias: gemma
+    base_url: http://host.docker.internal:11434
+    model: gemma4:26b

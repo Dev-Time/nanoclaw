@@ -94,7 +94,6 @@ let messageLoopRunning = false;
 const channels: Channel[] = [];
 const queue = new GroupQueue();
 
-
 const onecli = new OneCLI({ url: ONECLI_URL });
 
 function ensureOneCLIAgent(jid: string, group: RegisteredGroup): void {
@@ -279,7 +278,9 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
   // Alias detection and stripping already happened before enqueue.
   const configs = loadModelConfigs();
-  const modelConfig = modelKey ? configs.find((c) => c.alias === modelKey) : undefined;
+  const modelConfig = modelKey
+    ? configs.find((c) => c.alias === modelKey)
+    : undefined;
   const effectiveOverride: ModelOverride | undefined = modelConfig
     ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
     : undefined;
@@ -389,7 +390,9 @@ async function runAgent(
 
   // Derive model override from modelKey
   const configs = loadModelConfigs();
-  const modelConfig = modelKey ? configs.find((c) => c.alias === modelKey) : undefined;
+  const modelConfig = modelKey
+    ? configs.find((c) => c.alias === modelKey)
+    : undefined;
   const modelOverride: ModelOverride | undefined = modelConfig
     ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
     : undefined;

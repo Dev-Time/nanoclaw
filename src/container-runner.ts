@@ -264,15 +264,15 @@ async function buildContainerArgs(
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
 
-  // Route API calls to the appropriate provider. Per-invocation overrides take
-  // precedence over the global defaults from .env.
-  const effectiveBaseUrl = modelOverride?.baseUrl ?? ANTHROPIC_BASE_URL;
-  const effectiveModel = modelOverride?.model ?? CLAUDE_CODE_MODEL;
-  if (effectiveBaseUrl) {
-    args.push('-e', `ANTHROPIC_BASE_URL=${effectiveBaseUrl}`);
-  }
-  if (effectiveModel) {
-    args.push('-e', `CLAUDE_CODE_MODEL=${effectiveModel}`);
+  // Route API calls to the appropriate provider.
+  // For alias slots: inject both ANTHROPIC_BASE_URL and CLAUDE_CODE_MODEL overrides.
+  // For the default slot: inject ANTHROPIC_BASE_URL only — the SDK resolves the model
+  // via its own defaults (ANTHROPIC_DEFAULT_SONNET_MODEL etc.) rather than CLAUDE_CODE_MODEL.
+  if (modelOverride) {
+    args.push('-e', `ANTHROPIC_BASE_URL=${modelOverride.baseUrl}`);
+    args.push('-e', `CLAUDE_CODE_MODEL=${modelOverride.model}`);
+  } else if (ANTHROPIC_BASE_URL) {
+    args.push('-e', `ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}`);
   }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.

@@ -61,7 +61,9 @@ export function startIpcWatcher(deps: IpcDeps): void {
     }
 
     // Set of known base group folders for IPC directory parsing
-    const knownGroupFolders = new Set(Object.values(registeredGroups).map((g) => g.folder));
+    const knownGroupFolders = new Set(
+      Object.values(registeredGroups).map((g) => g.folder),
+    );
 
     for (const sourceGroup of groupFolders) {
       // Resolve the IPC directory to its base group folder (handles slot dirs like "main--gemma")
