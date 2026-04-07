@@ -75,6 +75,12 @@ import {
   loadModelConfigs,
   resolveModelAlias,
 } from './model-router.js';
+import {
+  ipcFolderName,
+  makeSlotKey,
+  parseSlotKey,
+  sessionKey,
+} from './slot-key.js';
 
 // Re-export for backwards compatibility during refactor
 export { escapeXml, formatMessages } from './router.js';
@@ -88,10 +94,6 @@ let messageLoopRunning = false;
 const channels: Channel[] = [];
 const queue = new GroupQueue();
 
-// Pending model overrides: bridges the polling loop to processGroupMessages().
-// Set when startMessageLoop detects an alias on an enqueued message; consumed
-// (and cleared) by processGroupMessages() before spawning the container.
-const pendingModelOverrides = new Map<string, ModelOverride>();
 
 const onecli = new OneCLI({ url: ONECLI_URL });
 
@@ -233,7 +235,8 @@ export function _setRegisteredGroups(
  * Process all pending messages for a group.
  * Called by the GroupQueue when it's this group's turn.
  */
-async function processGroupMessages(chatJid: string): Promise<boolean> {
+async function processGroupMessages(slotKey: string): Promise<boolean> {
+  const { chatJid, modelKey } = parseSlotKey(slotKey);
   const group = registeredGroups[chatJid];
   if (!group) return true;
 
@@ -273,35 +276,13 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
     if (!hasTrigger) return true;
   }
 
-  // Consume any pending override stored by the polling loop, then check the
-  // triggering message itself for a model alias.
-  const pendingOverride = pendingModelOverrides.get(chatJid);
-  pendingModelOverrides.delete(chatJid);
-
-  const triggerMsg = missedMessages[missedMessages.length - 1];
-  const aliasResult = resolveModelAlias(triggerMsg.content, group.trigger);
-
-  if (aliasResult === 'unknown-alias') {
-    const aliases = getAvailableModelAliases();
-    const errorMsg =
-      aliases.length > 0
-        ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
-        : 'No model aliases configured. Add entries to models.yaml.';
-    channel.sendMessage(chatJid, errorMsg).catch((err) =>
-      logger.warn({ chatJid, err }, 'Failed to send unknown-alias error'),
-    );
-    lastAgentTimestamp[chatJid] = triggerMsg.timestamp;
-    saveState();
-    return true;
-  }
-
-  const effectiveOverride: ModelOverride | undefined = aliasResult
-    ? { baseUrl: aliasResult.config.baseUrl, model: aliasResult.config.model }
-    : pendingOverride;
-
-  if (aliasResult) {
-    triggerMsg.content = aliasResult.strippedPrompt;
-  }
+  // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
+  // Alias detection and stripping already happened before enqueue.
+  const configs = loadModelConfigs();
+  const modelConfig = modelKey ? configs.find((c) => c.alias === modelKey) : undefined;
+  const effectiveOverride: ModelOverride | undefined = modelConfig
+    ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
+    : undefined;
 
   const prompt = formatMessages(missedMessages, TIMEZONE);
 
@@ -327,7 +308,7 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
         { group: group.name },
         'Idle timeout, closing container stdin',
       );
-      queue.closeStdin(chatJid);
+      queue.closeStdin(slotKey);
     }, IDLE_TIMEOUT);
   };
 
@@ -358,14 +339,14 @@ async function processGroupMessages(chatJid: string): Promise<boolean> {
       }
 
       if (result.status === 'success') {
-        queue.notifyIdle(chatJid);
+        queue.notifyIdle(slotKey);
       }
 
       if (result.status === 'error') {
         hadError = true;
       }
     },
-    effectiveOverride,
+    modelKey,
   );
 
   await channel.setTyping?.(chatJid, false);
@@ -399,10 +380,19 @@ async function runAgent(
   prompt: string,
   chatJid: string,
   onOutput?: (output: ContainerOutput) => Promise<void>,
-  modelOverride?: ModelOverride,
+  modelKey?: string,
 ): Promise<'success' | 'error'> {
   const isMain = group.isMain === true;
-  const sessionId = sessions[group.folder];
+  const slotKey = makeSlotKey(chatJid, modelKey);
+  const sessKey = sessionKey(group.folder, modelKey);
+  const sessionId = sessions[sessKey];
+
+  // Derive model override from modelKey
+  const configs = loadModelConfigs();
+  const modelConfig = modelKey ? configs.find((c) => c.alias === modelKey) : undefined;
+  const modelOverride: ModelOverride | undefined = modelConfig
+    ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
+    : undefined;
 
   // Update tasks snapshot for container to read (filtered by group)
   const tasks = getAllTasks();
@@ -434,8 +424,8 @@ async function runAgent(
   const wrappedOnOutput = onOutput
     ? async (output: ContainerOutput) => {
         if (output.newSessionId) {
-          sessions[group.folder] = output.newSessionId;
-          setSession(group.folder, output.newSessionId);
+          sessions[sessKey] = output.newSessionId;
+          setSession(sessKey, output.newSessionId);
         }
         await onOutput(output);
       }
@@ -452,15 +442,21 @@ async function runAgent(
         isMain,
         assistantName: ASSISTANT_NAME,
         modelOverride,
+        modelKey,
       },
       (proc, containerName) =>
-        queue.registerProcess(chatJid, proc, containerName, group.folder),
+        queue.registerProcess(
+          slotKey,
+          proc,
+          containerName,
+          ipcFolderName(group.folder, modelKey),
+        ),
       wrappedOnOutput,
     );
 
     if (output.newSessionId) {
-      sessions[group.folder] = output.newSessionId;
-      setSession(group.folder, output.newSessionId);
+      sessions[sessKey] = output.newSessionId;
+      setSession(sessKey, output.newSessionId);
     }
 
     if (output.status === 'error') {
@@ -480,8 +476,8 @@ async function runAgent(
           { group: group.name, staleSessionId: sessionId, error: output.error },
           'Stale session detected — clearing for next retry',
         );
-        delete sessions[group.folder];
-        deleteSession(group.folder);
+        delete sessions[sessKey];
+        deleteSession(sessKey);
       }
 
       logger.error(
@@ -584,7 +580,10 @@ async function startMessageLoop(): Promise<void> {
           // Check the last message for a model alias before routing.
           // Unknown aliases get an error reply without spawning a container.
           const lastMsg = messagesToSend[messagesToSend.length - 1];
-          const loopAliasResult = resolveModelAlias(lastMsg.content, group.trigger);
+          const loopAliasResult = resolveModelAlias(
+            lastMsg.content,
+            group.trigger,
+          );
 
           if (loopAliasResult === 'unknown-alias') {
             const aliases = getAvailableModelAliases();
@@ -595,24 +594,31 @@ async function startMessageLoop(): Promise<void> {
             channel
               .sendMessage(chatJid, errorMsg)
               .catch((err) =>
-                logger.warn({ chatJid, err }, 'Failed to send unknown-alias error'),
+                logger.warn(
+                  { chatJid, err },
+                  'Failed to send unknown-alias error',
+                ),
               );
             lastAgentTimestamp[chatJid] = lastMsg.timestamp;
             saveState();
             continue;
           }
 
+          // Compute the slot key: alias messages go to the alias slot, others to default
+          const slotKey = loopAliasResult
+            ? makeSlotKey(chatJid, loopAliasResult.config.alias)
+            : chatJid;
+
+          // Strip alias prefix before formatting so the container doesn't see "@gemma"
+          let effectiveFormatted = formatted;
           if (loopAliasResult) {
-            // Store override so processGroupMessages() picks it up
-            pendingModelOverrides.set(chatJid, {
-              baseUrl: loopAliasResult.config.baseUrl,
-              model: loopAliasResult.config.model,
-            });
+            lastMsg.content = loopAliasResult.strippedPrompt;
+            effectiveFormatted = formatMessages(messagesToSend, TIMEZONE);
           }
 
-          if (queue.sendMessage(chatJid, formatted)) {
+          if (queue.sendMessage(slotKey, effectiveFormatted)) {
             logger.debug(
-              { chatJid, count: messagesToSend.length },
+              { chatJid, slotKey, count: messagesToSend.length },
               'Piped messages to active container',
             );
             lastAgentTimestamp[chatJid] = lastMsg.timestamp;
@@ -624,8 +630,8 @@ async function startMessageLoop(): Promise<void> {
                 logger.warn({ chatJid, err }, 'Failed to set typing indicator'),
               );
           } else {
-            // No active container — enqueue for a new one
-            queue.enqueueMessageCheck(chatJid);
+            // No active container for this slot — enqueue for a new one
+            queue.enqueueMessageCheck(slotKey);
           }
         }
       }
