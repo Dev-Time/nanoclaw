@@ -435,6 +435,10 @@ async function runQuery(
     log(`Additional directories: ${extraDirs.join(', ')}`);
   }
 
+  // Only pass model when CLAUDE_CODE_MODEL is set (alias slots only).
+  // Default slot omits it so the SDK uses its own model resolution.
+  const modelOverride = process.env.CLAUDE_CODE_MODEL || undefined;
+
   for await (const message of query({
     prompt: stream,
     options: {
@@ -442,6 +446,7 @@ async function runQuery(
       additionalDirectories: extraDirs.length > 0 ? extraDirs : undefined,
       resume: sessionId,
       resumeSessionAt: resumeAt,
+      model: modelOverride,
       systemPrompt: globalClaudeMd
         ? {
             type: 'preset' as const,

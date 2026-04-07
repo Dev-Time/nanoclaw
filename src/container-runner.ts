@@ -7,6 +7,8 @@ import fs from 'fs';
 import path from 'path';
 
 import {
+  ANTHROPIC_BASE_URL,
+  CLAUDE_CODE_MODEL,
   CONTAINER_IMAGE,
   CONTAINER_MAX_OUTPUT_SIZE,
   CONTAINER_TIMEOUT,
@@ -16,7 +18,11 @@ import {
   ONECLI_URL,
   TIMEZONE,
 } from './config.js';
-import { resolveGroupFolderPath, resolveGroupIpcPath } from './group-folder.js';
+import {
+  resolveGroupFolderPath,
+  resolveGroupIpcPath,
+  resolveSlotIpcPath,
+} from './group-folder.js';
 import { logger } from './logger.js';
 import {
   CONTAINER_RUNTIME_BIN,
@@ -26,7 +32,7 @@ import {
 } from './container-runtime.js';
 import { OneCLI } from '@onecli-sh/sdk';
 import { validateAdditionalMounts } from './mount-security.js';
-import { RegisteredGroup } from './types.js';
+import { ModelOverride, RegisteredGroup } from './types.js';
 
 const onecli = new OneCLI({ url: ONECLI_URL });
 
@@ -43,6 +49,8 @@ export interface ContainerInput {
   isScheduledTask?: boolean;
   assistantName?: string;
   script?: string;
+  modelOverride?: ModelOverride;
+  modelKey?: string;
 }
 
 export interface ContainerOutput {
@@ -61,6 +69,7 @@ interface VolumeMount {
 function buildVolumeMounts(
   group: RegisteredGroup,
   isMain: boolean,
+  modelKey?: string,
 ): VolumeMount[] {
   const mounts: VolumeMount[] = [];
   const projectRoot = process.cwd();
@@ -184,9 +193,11 @@ function buildVolumeMounts(
     readonly: false,
   });
 
-  // Per-group IPC namespace: each group gets its own IPC directory
-  // This prevents cross-group privilege escalation via IPC
-  const groupIpcDir = resolveGroupIpcPath(group.folder);
+  // Per-slot IPC namespace: each model slot gets its own IPC directory.
+  // Default slot: data/ipc/{groupFolder}/  Alias slot: data/ipc/{groupFolder}--{modelKey}/
+  const groupIpcDir = modelKey
+    ? resolveSlotIpcPath(group.folder, modelKey)
+    : resolveGroupIpcPath(group.folder);
   fs.mkdirSync(path.join(groupIpcDir, 'messages'), { recursive: true });
   fs.mkdirSync(path.join(groupIpcDir, 'tasks'), { recursive: true });
   fs.mkdirSync(path.join(groupIpcDir, 'input'), { recursive: true });
@@ -246,11 +257,23 @@ async function buildContainerArgs(
   mounts: VolumeMount[],
   containerName: string,
   agentIdentifier?: string,
+  modelOverride?: ModelOverride,
 ): Promise<string[]> {
   const args: string[] = ['run', '-i', '--rm', '--name', containerName];
 
   // Pass host timezone so container's local time matches the user's
   args.push('-e', `TZ=${TIMEZONE}`);
+
+  // Route API calls to the appropriate provider.
+  // For alias slots: inject both ANTHROPIC_BASE_URL and CLAUDE_CODE_MODEL overrides.
+  // For the default slot: inject ANTHROPIC_BASE_URL only — the SDK resolves the model
+  // via its own defaults (ANTHROPIC_DEFAULT_SONNET_MODEL etc.) rather than CLAUDE_CODE_MODEL.
+  if (modelOverride) {
+    args.push('-e', `ANTHROPIC_BASE_URL=${modelOverride.baseUrl}`);
+    args.push('-e', `CLAUDE_CODE_MODEL=${modelOverride.model}`);
+  } else if (ANTHROPIC_BASE_URL) {
+    args.push('-e', `ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL}`);
+  }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.
@@ -304,9 +327,10 @@ export async function runContainerAgent(
   const groupDir = resolveGroupFolderPath(group.folder);
   fs.mkdirSync(groupDir, { recursive: true });
 
-  const mounts = buildVolumeMounts(group, input.isMain);
+  const mounts = buildVolumeMounts(group, input.isMain, input.modelKey);
   const safeName = group.folder.replace(/[^a-zA-Z0-9-]/g, '-');
-  const containerName = `nanoclaw-${safeName}-${Date.now()}`;
+  const slotSuffix = input.modelKey ? `-${input.modelKey}` : '';
+  const containerName = `nanoclaw-${safeName}${slotSuffix}-${Date.now()}`;
   // Main group uses the default OneCLI agent; others use their own agent.
   const agentIdentifier = input.isMain
     ? undefined
@@ -315,6 +339,7 @@ export async function runContainerAgent(
     mounts,
     containerName,
     agentIdentifier,
+    input.modelOverride,
   );
 
   logger.debug(

@@ -7,6 +7,7 @@ import { DATA_DIR, IPC_POLL_INTERVAL, TIMEZONE } from './config.js';
 import { AvailableGroup } from './container-runner.js';
 import { createTask, deleteTask, getTaskById, updateTask } from './db.js';
 import { isValidGroupFolder } from './group-folder.js';
+import { parseIpcFolderName } from './slot-key.js';
 import { logger } from './logger.js';
 import { RegisteredGroup } from './types.js';
 
@@ -59,8 +60,17 @@ export function startIpcWatcher(deps: IpcDeps): void {
       if (group.isMain) folderIsMain.set(group.folder, true);
     }
 
+    // Set of known base group folders for IPC directory parsing
+    const knownGroupFolders = new Set(
+      Object.values(registeredGroups).map((g) => g.folder),
+    );
+
     for (const sourceGroup of groupFolders) {
-      const isMain = folderIsMain.get(sourceGroup) === true;
+      // Resolve the IPC directory to its base group folder (handles slot dirs like "main--gemma")
+      const parsedIpc = parseIpcFolderName(sourceGroup, knownGroupFolders);
+      if (!parsedIpc) continue; // unknown directory — skip
+      const baseFolder = parsedIpc.groupFolder;
+      const isMain = folderIsMain.get(baseFolder) === true;
       const messagesDir = path.join(ipcBaseDir, sourceGroup, 'messages');
       const tasksDir = path.join(ipcBaseDir, sourceGroup, 'tasks');
 
@@ -79,7 +89,7 @@ export function startIpcWatcher(deps: IpcDeps): void {
                 const targetGroup = registeredGroups[data.chatJid];
                 if (
                   isMain ||
-                  (targetGroup && targetGroup.folder === sourceGroup)
+                  (targetGroup && targetGroup.folder === baseFolder)
                 ) {
                   await deps.sendMessage(data.chatJid, data.text);
                   logger.info(
@@ -126,7 +136,7 @@ export function startIpcWatcher(deps: IpcDeps): void {
             try {
               const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
               // Pass source group identity to processTaskIpc for authorization
-              await processTaskIpc(data, sourceGroup, isMain, deps);
+              await processTaskIpc(data, baseFolder, isMain, deps);
               fs.unlinkSync(filePath);
             } catch (err) {
               logger.error(

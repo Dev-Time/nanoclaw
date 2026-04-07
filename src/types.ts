@@ -32,6 +32,11 @@ export interface ContainerConfig {
   timeout?: number; // Default: 300000 (5 minutes)
 }
 
+export interface ModelOverride {
+  baseUrl: string;
+  model: string;
+}
+
 export interface RegisteredGroup {
   name: string;
   folder: string;
