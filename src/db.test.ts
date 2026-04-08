@@ -102,13 +102,13 @@ describe('storeMessage', () => {
       is_from_me: true,
     });
 
-    // Message is stored (we can retrieve it — is_from_me doesn't affect retrieval)
+    // Message is stored (but we filter it out because is_from_me=1)
     const messages = getMessagesSince(
       'group@g.us',
       '2024-01-01T00:00:00.000Z',
       'Andy',
     );
-    expect(messages).toHaveLength(1);
+    expect(messages).toHaveLength(0);
   });
 
   it('upserts on duplicate id+chat_jid', () => {
@@ -269,9 +269,10 @@ describe('getMessagesSince', () => {
       '2024-01-01T00:00:02.000Z',
       'Andy',
     );
-    // Should exclude m1, m2 (before/at timestamp), m3 (bot message)
-    expect(msgs).toHaveLength(1);
-    expect(msgs[0].content).toBe('third');
+    // Should exclude m1, m2 (before/at timestamp)
+    expect(msgs).toHaveLength(2);
+    expect(msgs[0].content).toBe('bot reply');
+    expect(msgs[1].content).toBe('third');
   });
 
   it('excludes bot messages via is_bot_message flag', () => {
@@ -281,13 +282,13 @@ describe('getMessagesSince', () => {
       'Andy',
     );
     const botMsgs = msgs.filter((m) => m.content === 'bot reply');
-    expect(botMsgs).toHaveLength(0);
+    expect(botMsgs).toHaveLength(1);
   });
 
   it('returns all non-bot messages when sinceTimestamp is empty', () => {
     const msgs = getMessagesSince('group@g.us', '', 'Andy');
-    // 3 user messages (bot message excluded)
-    expect(msgs).toHaveLength(3);
+    // 4 messages (including bot message)
+    expect(msgs).toHaveLength(4);
   });
 
   it('recovers cursor from last bot reply when lastAgentTimestamp is missing', () => {
@@ -391,7 +392,8 @@ describe('getMessagesSince', () => {
       '2024-01-01T00:00:04.000Z',
       'Andy',
     );
-    expect(msgs).toHaveLength(0);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].content).toBe('Andy: old bot reply');
   });
 });
 
@@ -443,8 +445,8 @@ describe('getNewMessages', () => {
       '2024-01-01T00:00:00.000Z',
       'Andy',
     );
-    // Excludes bot message, returns 3 user messages
-    expect(messages).toHaveLength(3);
+    // Excludes self message, returns 4 messages (including other bot message)
+    expect(messages).toHaveLength(4);
     expect(newTimestamp).toBe('2024-01-01T00:00:04.000Z');
   });
 
@@ -454,9 +456,9 @@ describe('getNewMessages', () => {
       '2024-01-01T00:00:02.000Z',
       'Andy',
     );
-    // Only g1 msg2 (after ts, not bot)
-    expect(messages).toHaveLength(1);
-    expect(messages[0].content).toBe('g1 msg2');
+    // Only g1 msg2 (after ts) and g1 msg3 (bot message after ts)
+    expect(messages).toHaveLength(2);
+    expect(messages[0].content).toBe('bot reply');
   });
 
   it('returns empty for no registered groups', () => {

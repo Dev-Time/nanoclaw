@@ -142,17 +142,18 @@ function loadState(): void {
  * Return the message cursor for a group, recovering from the last bot reply
  * if lastAgentTimestamp is missing (new group, corrupted state, restart).
  */
-function getOrRecoverCursor(chatJid: string): string {
-  const existing = lastAgentTimestamp[chatJid];
+function getOrRecoverCursor(slotKey: string): string {
+  const existing = lastAgentTimestamp[slotKey];
   if (existing) return existing;
 
-  const botTs = getLastBotMessageTimestamp(chatJid, ASSISTANT_NAME);
+  const { chatJid, modelKey } = parseSlotKey(slotKey);
+  const botTs = getLastBotMessageTimestamp(chatJid, modelKey || ASSISTANT_NAME);
   if (botTs) {
     logger.info(
-      { chatJid, recoveredFrom: botTs },
+      { slotKey, recoveredFrom: botTs },
       'Recovered message cursor from last bot reply',
     );
-    lastAgentTimestamp[chatJid] = botTs;
+    lastAgentTimestamp[slotKey] = botTs;
     saveState();
     return botTs;
   }
@@ -255,7 +256,7 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
 
   const missedMessages = getMessagesSince(
     chatJid,
-    getOrRecoverCursor(chatJid),
+    getOrRecoverCursor(slotKey),
     ASSISTANT_NAME,
     MAX_MESSAGES_PER_PROMPT,
   );
@@ -270,14 +271,14 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
     triggerPattern: getTriggerPattern(group.trigger),
     timezone: TIMEZONE,
     deps: {
-      sendMessage: (text) => channel.sendMessage(chatJid, text),
+      sendMessage: (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
       setTyping: (typing) =>
         channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
       runAgent: (prompt, onOutput) =>
         runAgent(group, prompt, chatJid, onOutput),
       closeStdin: () => queue.closeStdin(chatJid),
       advanceCursor: (ts) => {
-        lastAgentTimestamp[chatJid] = ts;
+        lastAgentTimestamp[slotKey] = ts;
         saveState();
       },
       formatMessages,
@@ -301,21 +302,28 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
 
   // For non-main groups, check if trigger is required and present.
   // A known model alias also acts as an implicit trigger.
+  // Only user messages (not bot messages) trigger the LLM to avoid feedback loops.
   if (!isMainGroup && group.requiresTrigger !== false) {
     const triggerPattern = getTriggerPattern(group.trigger);
     const allowlistCfg = loadSenderAllowlist();
     let hasTrigger = missedMessages.some(
       (m) =>
+        !m.is_from_me &&
         triggerPattern.test(m.content.trim()) &&
-        (m.is_from_me || isTriggerAllowed(chatJid, m.sender, allowlistCfg)),
+        isTriggerAllowed(chatJid, m.sender, allowlistCfg),
     );
     if (!hasTrigger) {
       hasTrigger = missedMessages.some((m) => {
+        if (m.is_from_me) return false;
         const r = resolveModelAlias(m.content, group.trigger);
         return r !== null && r !== 'unknown-alias';
       });
     }
     if (!hasTrigger) return true;
+  } else if (isMainGroup) {
+    // For main groups, we only trigger if there is at least one new user message.
+    const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
+    if (!hasUserMessage) return true;
   }
 
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
@@ -332,8 +340,8 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
 
   // Advance cursor so the piping path in startMessageLoop won't re-fetch
   // these messages. Save the old cursor so we can roll back on error.
-  const previousCursor = lastAgentTimestamp[chatJid] || '';
-  lastAgentTimestamp[chatJid] =
+  const previousCursor = lastAgentTimestamp[slotKey] || '';
+  lastAgentTimestamp[slotKey] =
     missedMessages[missedMessages.length - 1].timestamp;
   saveState();
 
@@ -371,11 +379,10 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
           typeof result.result === 'string'
             ? result.result
             : JSON.stringify(result.result);
-        // Strip <internal>...</internal> blocks — agent uses these for internal reasoning
-        const text = raw.replace(/<internal>[\s\S]*?<\/internal>/g, '').trim();
+        const senderName = modelKey || ASSISTANT_NAME;
         logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
-        if (text) {
-          await channel.sendMessage(chatJid, text);
+        if (raw.trim()) {
+          await sendMessageAndStore(chatJid, raw, senderName);
           outputSentToUser = true;
         }
         // Only reset idle timer on actual results, not session-update markers (result: null)
@@ -407,7 +414,7 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
       return true;
     }
     // Roll back cursor so retries can re-process these messages
-    lastAgentTimestamp[chatJid] = previousCursor;
+    lastAgentTimestamp[slotKey] = previousCursor;
     saveState();
     logger.warn(
       { group: group.name },
@@ -417,6 +424,46 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
   }
 
   return true;
+}
+
+/**
+ * Send a message to a chat and store it in the database for future context.
+ */
+async function sendMessageAndStore(
+  chatJid: string,
+  text: string,
+  senderName: string,
+  threadId?: string,
+): Promise<void> {
+  try {
+    logger.debug({ chatJid, senderName, textLength: text.length }, 'sendMessageAndStore called');
+    const channel = findChannel(channels, chatJid);
+    if (!channel) {
+      logger.warn({ chatJid }, 'No channel owns JID, cannot send message');
+      return;
+    }
+    const formatted = formatOutbound(text, channel.name as ChannelType);
+    if (!formatted) return;
+
+    await channel.sendMessage(chatJid, formatted, threadId);
+
+    // Ensure chat metadata exists before storing message (FK safety)
+    storeChatMetadata(chatJid, new Date().toISOString());
+
+    storeMessage({
+      id: `bot-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      chat_jid: chatJid,
+      sender: 'bot',
+      sender_name: senderName,
+      content: formatted,
+      timestamp: new Date().toISOString(),
+      is_from_me: true,
+      is_bot_message: true,
+      thread_id: threadId,
+    });
+  } catch (err) {
+    logger.error({ chatJid, senderName, err }, 'Failed in sendMessageAndStore');
+  }
 }
 
 async function runAgent(
@@ -618,23 +665,25 @@ async function startMessageLoop(): Promise<void> {
           }
           // --- End session command interception ---
 
-          const needsTrigger = !isMainGroup && group.requiresTrigger !== false;
+          const needsTrigger = group.requiresTrigger !== false;
+
+          // Only user messages (not bot messages) trigger the LLM to avoid feedback loops.
+          const hasUserMessage = groupMessages.some((m) => !m.is_from_me);
+          if (!hasUserMessage) continue;
 
           // For non-main groups, only act on trigger messages.
-          // Non-trigger messages accumulate in DB and get pulled as
-          // context when a trigger eventually arrives.
-          // A known model alias also acts as an implicit trigger.
-          if (needsTrigger) {
+          if (!isMainGroup && needsTrigger) {
             const triggerPattern = getTriggerPattern(group.trigger);
             const allowlistCfg = loadSenderAllowlist();
             let hasTrigger = groupMessages.some(
               (m) =>
+                !m.is_from_me &&
                 triggerPattern.test(m.content.trim()) &&
-                (m.is_from_me ||
-                  isTriggerAllowed(chatJid, m.sender, allowlistCfg)),
+                isTriggerAllowed(chatJid, m.sender, allowlistCfg),
             );
             if (!hasTrigger) {
               hasTrigger = groupMessages.some((m) => {
+                if (m.is_from_me) return false;
                 const r = resolveModelAlias(m.content, group.trigger);
                 return r !== null && r !== 'unknown-alias';
               });
@@ -644,9 +693,15 @@ async function startMessageLoop(): Promise<void> {
 
           // Pull all messages since lastAgentTimestamp so non-trigger
           // context that accumulated between triggers is included.
+          // Note: slotKey is not yet computed here because it depends on loopAliasResult,
+          // which depends on the last message in messagesToSend.
+          // BUT wait, we need to know the slotKey to get the right cursor.
+          // Actually, in the message loop, we don't know the slotKey yet.
+          // Let's assume the default slot first to check for alias.
+          const currentCursor = getOrRecoverCursor(chatJid); // Default slot cursor
           const allPending = getMessagesSince(
             chatJid,
-            getOrRecoverCursor(chatJid),
+            currentCursor,
             ASSISTANT_NAME,
             MAX_MESSAGES_PER_PROMPT,
           );
@@ -668,37 +723,57 @@ async function startMessageLoop(): Promise<void> {
               aliases.length > 0
                 ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
                 : 'No model aliases configured. Add entries to models.yaml.';
-            channel
-              .sendMessage(chatJid, errorMsg)
-              .catch((err) =>
-                logger.warn(
-                  { chatJid, err },
-                  'Failed to send unknown-alias error',
-                ),
+            try {
+              await sendMessageAndStore(chatJid, errorMsg, ASSISTANT_NAME);
+            } catch (err) {
+              logger.warn(
+                { chatJid, err },
+                'Failed to send unknown-alias error',
               );
+            }
             lastAgentTimestamp[chatJid] = lastMsg.timestamp;
             saveState();
             continue;
           }
 
-          // Compute the slot key: alias messages go to the alias slot, others to default
+          // Compute the slotKey now that we know if it's an alias.
           const slotKey = loopAliasResult
             ? makeSlotKey(chatJid, loopAliasResult.config.alias)
             : chatJid;
 
-          // Strip alias prefix before formatting so the container doesn't see "@gemma"
-          let effectiveFormatted = formatted;
+          // Re-fetch context if it's an alias slot, as it might have a different cursor.
+          let finalMessagesToSend = messagesToSend;
           if (loopAliasResult) {
-            lastMsg.content = loopAliasResult.strippedPrompt;
-            effectiveFormatted = formatMessages(messagesToSend, TIMEZONE);
+            const aliasCursor = getOrRecoverCursor(slotKey);
+            if (aliasCursor !== currentCursor) {
+              const aliasPending = getMessagesSince(
+                chatJid,
+                aliasCursor,
+                ASSISTANT_NAME,
+                MAX_MESSAGES_PER_PROMPT,
+              );
+              finalMessagesToSend = aliasPending.length > 0 ? aliasPending : groupMessages;
+            }
+          }
+
+          // Strip alias prefix before formatting so the container doesn't see "@gemma"
+          let effectiveFormatted = formatMessages(finalMessagesToSend, TIMEZONE);
+          if (loopAliasResult) {
+            // Find the last message in finalMessagesToSend to strip it
+            const lastMsgInFinal = finalMessagesToSend[finalMessagesToSend.length - 1];
+            // Only strip if it matches the content we just resolved
+            if (lastMsgInFinal.content.includes(loopAliasResult.config.alias)) {
+               lastMsgInFinal.content = loopAliasResult.strippedPrompt;
+            }
+            effectiveFormatted = formatMessages(finalMessagesToSend, TIMEZONE);
           }
 
           if (queue.sendMessage(slotKey, effectiveFormatted)) {
             logger.debug(
-              { chatJid, slotKey, count: messagesToSend.length },
+              { chatJid, slotKey, count: finalMessagesToSend.length },
               'Piped messages to active container',
             );
-            lastAgentTimestamp[chatJid] = lastMsg.timestamp;
+            lastAgentTimestamp[slotKey] = finalMessagesToSend[finalMessagesToSend.length - 1].timestamp;
             saveState();
             // Show typing indicator while the container processes the piped message
             channel
@@ -737,6 +812,25 @@ function recoverPendingMessages(): void {
         'Recovery: found unprocessed messages',
       );
       queue.enqueueMessageCheck(chatJid);
+      
+      // Also check alias slots for this group
+      const modelAliases = loadModelConfigs();
+      for (const aliasCfg of modelAliases) {
+        const slotKey = makeSlotKey(chatJid, aliasCfg.alias);
+        const aliasPending = getMessagesSince(
+          chatJid,
+          getOrRecoverCursor(slotKey),
+          ASSISTANT_NAME,
+          MAX_MESSAGES_PER_PROMPT,
+        );
+        if (aliasPending.length > 0) {
+          logger.info(
+            { group: group.name, alias: aliasCfg.alias, pendingCount: aliasPending.length },
+            'Recovery: found unprocessed messages for alias',
+          );
+          queue.enqueueMessageCheck(slotKey);
+        }
+      }
     }
   }
 }
@@ -797,19 +891,24 @@ async function main(): Promise<void> {
         process.cwd(),
       );
       if (result.ok) {
-        await channel.sendMessage(chatJid, result.url);
+        await sendMessageAndStore(chatJid, result.url, ASSISTANT_NAME);
       } else {
-        await channel.sendMessage(
+        await sendMessageAndStore(
           chatJid,
           `Remote Control failed: ${result.error}`,
+          ASSISTANT_NAME,
         );
       }
     } else {
       const result = stopRemoteControl();
       if (result.ok) {
-        await channel.sendMessage(chatJid, 'Remote Control session ended.');
+        await sendMessageAndStore(
+          chatJid,
+          'Remote Control session ended.',
+          ASSISTANT_NAME,
+        );
       } else {
-        await channel.sendMessage(chatJid, result.error);
+        await sendMessageAndStore(chatJid, result.error, ASSISTANT_NAME);
       }
     }
   }
@@ -882,24 +981,10 @@ async function main(): Promise<void> {
     queue,
     onProcess: (groupJid, proc, containerName, groupFolder) =>
       queue.registerProcess(groupJid, proc, containerName, groupFolder),
-    sendMessage: async (jid, rawText) => {
-      const channel = findChannel(channels, jid);
-      if (!channel) {
-        logger.warn({ jid }, 'No channel owns JID, cannot send message');
-        return;
-      }
-      const text = formatOutbound(rawText, channel.name as ChannelType);
-      if (text) await channel.sendMessage(jid, text);
-    },
+    sendMessage: (jid, rawText) => sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
   });
   startIpcWatcher({
-    sendMessage: (jid, rawText) => {
-      const channel = findChannel(channels, jid);
-      if (!channel) throw new Error(`No channel for JID: ${jid}`);
-      const text = formatOutbound(rawText, channel.name as ChannelType);
-      if (!text) return Promise.resolve();
-      return channel.sendMessage(jid, text);
-    },
+    sendMessage: (jid, rawText) => sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
     registeredGroups: () => registeredGroups,
     registerGroup,
     syncGroups: async (force: boolean) => {

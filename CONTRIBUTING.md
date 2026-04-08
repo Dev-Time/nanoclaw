@@ -117,6 +117,8 @@ Instructions here...
 
 Test your contribution on a fresh clone before submitting. For skills, run the skill end-to-end and verify it works.
 
+**Regression Policy:** NEVER delete existing regression tests (`src/*.test.ts`). If you fix a bug, you MUST include a regression test that fails without your fix and passes with it. These tests are permanent and must be integrated into the main test suite.
+
 ## Pull Requests
 
 ### Before opening
