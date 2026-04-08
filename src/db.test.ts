@@ -102,13 +102,13 @@ describe('storeMessage', () => {
       is_from_me: true,
     });
 
-    // Message is stored (but we filter it out because is_from_me=1)
+    // Message is stored (and returned as context even if is_from_me=1)
     const messages = getMessagesSince(
       'group@g.us',
       '2024-01-01T00:00:00.000Z',
       'Andy',
     );
-    expect(messages).toHaveLength(0);
+    expect(messages).toHaveLength(1);
   });
 
   it('upserts on duplicate id+chat_jid', () => {
@@ -275,7 +275,7 @@ describe('getMessagesSince', () => {
     expect(msgs[1].content).toBe('third');
   });
 
-  it('excludes bot messages via is_bot_message flag', () => {
+  it('includes bot messages via is_bot_message flag', () => {
     const msgs = getMessagesSince(
       'group@g.us',
       '2024-01-01T00:00:00.000Z',

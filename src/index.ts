@@ -275,8 +275,8 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
       setTyping: (typing) =>
         channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
       runAgent: (prompt, onOutput) =>
-        runAgent(group, prompt, chatJid, onOutput),
-      closeStdin: () => queue.closeStdin(chatJid),
+        runAgent(group, prompt, chatJid, onOutput, modelKey),
+      closeStdin: () => queue.closeStdin(slotKey),
       advanceCursor: (ts) => {
         lastAgentTimestamp[slotKey] = ts;
         saveState();
@@ -327,7 +327,8 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
   }
 
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
-  // Alias detection and stripping already happened before enqueue.
+  // Alias detection and stripping already happened before enqueue, but we re-fetch
+  // here, so we must re-strip to ensure the container doesn't see the trigger word.
   const configs = loadModelConfigs();
   const modelConfig = modelKey
     ? configs.find((c) => c.alias === modelKey)
@@ -335,6 +336,14 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
   const effectiveOverride: ModelOverride | undefined = modelConfig
     ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
     : undefined;
+
+  if (modelConfig) {
+    const lastMsg = missedMessages[missedMessages.length - 1];
+    const r = resolveModelAlias(lastMsg.content, group.trigger);
+    if (r && r !== 'unknown-alias' && r.config.alias === modelKey) {
+      lastMsg.content = r.strippedPrompt;
+    }
+  }
 
   const prompt = formatMessages(missedMessages, TIMEZONE);
 
@@ -505,6 +514,7 @@ async function runAgent(
       status: t.status,
       next_run: t.next_run,
     })),
+    modelKey,
   );
 
   // Update available groups snapshot (main group only can see all groups)
@@ -514,6 +524,7 @@ async function runAgent(
     isMain,
     availableGroups,
     new Set(Object.keys(registeredGroups)),
+    modelKey,
   );
 
   // Wrap onOutput to track session ID from streamed results
@@ -694,29 +705,11 @@ async function startMessageLoop(): Promise<void> {
             if (!hasTrigger) continue;
           }
 
-          // Pull all messages since lastAgentTimestamp so non-trigger
-          // context that accumulated between triggers is included.
-          // Note: slotKey is not yet computed here because it depends on loopAliasResult,
-          // which depends on the last message in messagesToSend.
-          // BUT wait, we need to know the slotKey to get the right cursor.
-          // Actually, in the message loop, we don't know the slotKey yet.
-          // Let's assume the default slot first to check for alias.
-          const currentCursor = getOrRecoverCursor(chatJid); // Default slot cursor
-          const allPending = getMessagesSince(
-            chatJid,
-            currentCursor,
-            ASSISTANT_NAME,
-            MAX_MESSAGES_PER_PROMPT,
-          );
-          const messagesToSend =
-            allPending.length > 0 ? allPending : groupMessages;
-          const formatted = formatMessages(messagesToSend, TIMEZONE);
-
           // Check the last message for a model alias before routing.
           // Unknown aliases get an error reply without spawning a container.
-          const lastMsg = messagesToSend[messagesToSend.length - 1];
+          const lastMsgInBatch = groupMessages[groupMessages.length - 1];
           const loopAliasResult = resolveModelAlias(
-            lastMsg.content,
+            lastMsgInBatch.content,
             group.trigger,
           );
 
@@ -734,7 +727,7 @@ async function startMessageLoop(): Promise<void> {
                 'Failed to send unknown-alias error',
               );
             }
-            lastAgentTimestamp[chatJid] = lastMsg.timestamp;
+            lastAgentTimestamp[chatJid] = lastMsgInBatch.timestamp;
             saveState();
             continue;
           }
@@ -744,45 +737,36 @@ async function startMessageLoop(): Promise<void> {
             ? makeSlotKey(chatJid, loopAliasResult.config.alias)
             : chatJid;
 
-          // Re-fetch context if it's an alias slot, as it might have a different cursor.
-          let finalMessagesToSend = messagesToSend;
+          // Pull all messages since this slot's lastAgentTimestamp so non-trigger
+          // context that accumulated between triggers is included.
+          const currentCursor = getOrRecoverCursor(slotKey);
+          const allPending = getMessagesSince(
+            chatJid,
+            currentCursor,
+            ASSISTANT_NAME,
+            MAX_MESSAGES_PER_PROMPT,
+          );
+          const messagesToSend =
+            allPending.length > 0 ? allPending : groupMessages;
+
+          // Strip alias prefix before formatting so the container doesn't see "@gemma"
           if (loopAliasResult) {
-            const aliasCursor = getOrRecoverCursor(slotKey);
-            if (aliasCursor !== currentCursor) {
-              const aliasPending = getMessagesSince(
-                chatJid,
-                aliasCursor,
-                ASSISTANT_NAME,
-                MAX_MESSAGES_PER_PROMPT,
-              );
-              finalMessagesToSend =
-                aliasPending.length > 0 ? aliasPending : groupMessages;
+            const lastMsg = messagesToSend[messagesToSend.length - 1];
+            // Only strip if it matches the content we just resolved
+            if (lastMsg.content.includes(loopAliasResult.config.alias)) {
+              lastMsg.content = loopAliasResult.strippedPrompt;
             }
           }
 
-          // Strip alias prefix before formatting so the container doesn't see "@gemma"
-          let effectiveFormatted = formatMessages(
-            finalMessagesToSend,
-            TIMEZONE,
-          );
-          if (loopAliasResult) {
-            // Find the last message in finalMessagesToSend to strip it
-            const lastMsgInFinal =
-              finalMessagesToSend[finalMessagesToSend.length - 1];
-            // Only strip if it matches the content we just resolved
-            if (lastMsgInFinal.content.includes(loopAliasResult.config.alias)) {
-              lastMsgInFinal.content = loopAliasResult.strippedPrompt;
-            }
-            effectiveFormatted = formatMessages(finalMessagesToSend, TIMEZONE);
-          }
+          const effectiveFormatted = formatMessages(messagesToSend, TIMEZONE);
 
           if (queue.sendMessage(slotKey, effectiveFormatted)) {
             logger.debug(
-              { chatJid, slotKey, count: finalMessagesToSend.length },
+              { chatJid, slotKey, count: messagesToSend.length },
               'Piped messages to active container',
             );
             lastAgentTimestamp[slotKey] =
-              finalMessagesToSend[finalMessagesToSend.length - 1].timestamp;
+              messagesToSend[messagesToSend.length - 1].timestamp;
             saveState();
             // Show typing indicator while the container processes the piped message
             channel

@@ -431,8 +431,10 @@ export async function runContainerAgent(
               newSessionId = parsed.newSessionId;
             }
             hadStreamingOutput = true;
-            // Activity detected — reset the hard timeout
-            resetTimeout();
+            // Activity detected — reset the hard timeout.
+            // result: null indicates the query turn finished and the agent is now idle.
+            const isIdle = parsed.result === null;
+            resetTimeout(isIdle ? idleTimeoutMs : configTimeout);
             // Call onOutput for all markers (including null results)
             // so idle timers start even for "silent" query completions.
             outputChain = outputChain.then(() => onOutput(parsed));
@@ -450,10 +452,20 @@ export async function runContainerAgent(
       const chunk = data.toString();
       const lines = chunk.trim().split('\n');
       for (const line of lines) {
-        if (line) logger.debug({ container: group.folder }, line);
+        if (line) {
+          logger.debug({ container: group.folder }, line);
+          // If we see SDK progress or wakeup logs, reset to full execution timeout
+          if (
+            line.includes('type=') ||
+            line.includes('Starting query') ||
+            line.includes('Got new message')
+          ) {
+            resetTimeout(configTimeout);
+          }
+        }
       }
-      // Don't reset timeout on stderr — SDK writes debug logs continuously.
-      // Timeout only resets on actual output (OUTPUT_MARKER in stdout).
+      // Don't reset timeout on stderr for every line — SDK writes debug logs continuously.
+      // But we DO reset for explicit progress messages above.
       if (stderrTruncated) return;
       const remaining = CONTAINER_MAX_OUTPUT_SIZE - stderr.length;
       if (chunk.length > remaining) {
@@ -473,12 +485,13 @@ export async function runContainerAgent(
     const configTimeout = group.containerConfig?.timeout || CONTAINER_TIMEOUT;
     // Grace period: hard timeout must be at least IDLE_TIMEOUT + 30s so the
     // graceful _close sentinel has time to trigger before the hard kill fires.
-    const timeoutMs = Math.max(configTimeout, IDLE_TIMEOUT + 30_000);
+    const idleTimeoutMs = IDLE_TIMEOUT + 30_000;
+    let currentTimeoutMs = configTimeout;
 
     const killOnTimeout = () => {
       timedOut = true;
       logger.error(
-        { group: group.name, containerName },
+        { group: group.name, containerName, timeoutMs: currentTimeoutMs },
         'Container timeout, stopping gracefully',
       );
       try {
@@ -492,12 +505,13 @@ export async function runContainerAgent(
       }
     };
 
-    let timeout = setTimeout(killOnTimeout, timeoutMs);
+    let timeout = setTimeout(killOnTimeout, currentTimeoutMs);
 
     // Reset the timeout whenever there's activity (streaming output)
-    const resetTimeout = () => {
+    const resetTimeout = (ms?: number) => {
       clearTimeout(timeout);
-      timeout = setTimeout(killOnTimeout, timeoutMs);
+      if (ms) currentTimeoutMs = ms;
+      timeout = setTimeout(killOnTimeout, currentTimeoutMs);
     };
 
     container.on('close', (code) => {
@@ -515,6 +529,7 @@ export async function runContainerAgent(
             `Group: ${group.name}`,
             `Container: ${containerName}`,
             `Duration: ${duration}ms`,
+            `Timeout Setting: ${currentTimeoutMs}ms`,
             `Exit Code: ${code}`,
             `Had Streaming Output: ${hadStreamingOutput}`,
           ].join('\n'),
@@ -733,9 +748,12 @@ export function writeTasksSnapshot(
     status: string;
     next_run: string | null;
   }>,
+  modelKey?: string,
 ): void {
   // Write filtered tasks to the group's IPC directory
-  const groupIpcDir = resolveGroupIpcPath(groupFolder);
+  const groupIpcDir = modelKey
+    ? resolveSlotIpcPath(groupFolder, modelKey)
+    : resolveGroupIpcPath(groupFolder);
   fs.mkdirSync(groupIpcDir, { recursive: true });
 
   // Main sees all tasks, others only see their own
@@ -764,8 +782,11 @@ export function writeGroupsSnapshot(
   isMain: boolean,
   groups: AvailableGroup[],
   _registeredJids: Set<string>,
+  modelKey?: string,
 ): void {
-  const groupIpcDir = resolveGroupIpcPath(groupFolder);
+  const groupIpcDir = modelKey
+    ? resolveSlotIpcPath(groupFolder, modelKey)
+    : resolveGroupIpcPath(groupFolder);
   fs.mkdirSync(groupIpcDir, { recursive: true });
 
   // Main sees all groups; others see nothing (they can't activate groups)

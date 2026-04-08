@@ -11,7 +11,7 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
     _initTestDatabase();
   });
 
-  it('filters out messages starting with ASSISTANT_NAME', () => {
+  it('includes messages starting with ASSISTANT_NAME', () => {
     const chatJid = 'group@g.us';
     storeChatMetadata(chatJid, '2024-01-01T00:00:00.000Z');
 
@@ -36,7 +36,7 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
     expect(messages).toHaveLength(1);
   });
 
-  it('filters out messages marked with is_bot_message=1', () => {
+  it('includes messages marked with is_bot_message=1', () => {
     const chatJid = 'group@g.us';
     storeChatMetadata(chatJid, '2024-01-01T00:00:00.000Z');
 
@@ -58,8 +58,7 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
       'Andy',
     );
 
-    // CURRENT BEHAVIOR: This fails because getMessagesSince filters out is_bot_message = 1
-    // DESIRED BEHAVIOR: Should have 1 message
+    // CURRENT BEHAVIOR: Returns the message (expected for context/history)
     expect(messages).toHaveLength(1);
   });
 });

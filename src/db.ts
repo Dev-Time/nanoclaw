@@ -368,8 +368,7 @@ export function getNewMessages(
   if (jids.length === 0) return { messages: [], newTimestamp: lastTimestamp };
 
   const placeholders = jids.map(() => '?').join(',');
-  // Filter bot messages using both the is_bot_message flag AND the content
-  // prefix as a backstop for messages written before the migration ran.
+  // Include bot messages and self messages in the stream so the agent has context.
   // Subquery takes the N most recent, outer query re-sorts chronologically.
   const sql = `
     SELECT * FROM (
@@ -401,8 +400,7 @@ export function getMessagesSince(
   botPrefix: string,
   limit: number = 200,
 ): NewMessage[] {
-  // Filter bot messages using both the is_bot_message flag AND the content
-  // prefix as a backstop for messages written before the migration ran.
+  // Include bot messages and self messages in the stream so the agent has context.
   // Subquery takes the N most recent, outer query re-sorts chronologically.
   const sql = `
     SELECT * FROM (
