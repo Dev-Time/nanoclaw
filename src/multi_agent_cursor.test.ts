@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { 
-  _initTestDatabase, 
-  storeMessage, 
+import {
+  _initTestDatabase,
+  storeMessage,
   storeChatMetadata,
-  getMessagesSince
+  getMessagesSince,
 } from './db.js';
 
 describe('Multi-agent cursor isolation', () => {
@@ -59,7 +59,7 @@ describe('Multi-agent cursor isolation', () => {
     // 3. Gemma runs. If Gemma had used Andy's cursor (the old behavior), she would miss context!
     // But with independent cursors, she still uses gemmaCursor.
     const gemmaContext = getMessagesSince(chatJid, gemmaCursor, 'Andy');
-    
+
     // Gemma should see both the user message and Andy's response!
     expect(gemmaContext).toHaveLength(2);
     expect(gemmaContext[0].content).toBe('Hi Andy and @gemma');

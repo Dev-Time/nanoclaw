@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { 
+import {
   _initTestDatabase,
-  storeMessage, 
+  storeMessage,
   getMessagesSince,
   getNewMessages,
   storeChatMetadata,
@@ -31,13 +31,21 @@ describe('Bot message storage and retrieval', () => {
     storeMessage(msg);
 
     // Check with getMessagesSince
-    const messages = getMessagesSince(chatJid, '1970-01-01T00:00:00.000Z', 'Andy');
+    const messages = getMessagesSince(
+      chatJid,
+      '1970-01-01T00:00:00.000Z',
+      'Andy',
+    );
     expect(messages).toHaveLength(1);
     expect(messages[0].id).toBe('bot-123');
     expect(messages[0].is_bot_message).toBe(1); // SQLite returns 1 for true
 
     // Check with getNewMessages
-    const { messages: newMsgs } = getNewMessages([chatJid], '1970-01-01T00:00:00.000Z', 'Andy');
+    const { messages: newMsgs } = getNewMessages(
+      [chatJid],
+      '1970-01-01T00:00:00.000Z',
+      'Andy',
+    );
     expect(newMsgs).toHaveLength(1);
     expect(newMsgs[0].id).toBe('bot-123');
     expect(newMsgs[0].is_bot_message).toBe(1);
@@ -61,7 +69,11 @@ describe('Bot message storage and retrieval', () => {
 
     storeMessage(msg);
 
-    const messages = getMessagesSince(chatJid, '1970-01-01T00:00:00.000Z', 'Andy');
+    const messages = getMessagesSince(
+      chatJid,
+      '1970-01-01T00:00:00.000Z',
+      'Andy',
+    );
     expect(messages).toHaveLength(1);
     expect(messages[0].content).toBe(largeContent);
   });

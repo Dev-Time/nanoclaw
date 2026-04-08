@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { 
-  _initTestDatabase, 
-  storeMessage, 
+import {
+  _initTestDatabase,
+  storeMessage,
   getMessagesSince,
-  storeChatMetadata
+  storeChatMetadata,
 } from './db.js';
 import { formatMessages } from './router.js';
 
@@ -54,10 +54,14 @@ describe('Multi-agent context sharing', () => {
     // 4. Andy (the default agent) fetches context
     // In NanoClaw, default assistantName is "Andy"
     const assistantName = 'Andy';
-    const messages = getMessagesSince(chatJid, '1970-01-01T00:00:00.000Z', assistantName);
-    
+    const messages = getMessagesSince(
+      chatJid,
+      '1970-01-01T00:00:00.000Z',
+      assistantName,
+    );
+
     // VERIFY: Gemma's message is included in the DB results
-    const gemmaMsg = messages.find(m => m.sender_name === 'gemma');
+    const gemmaMsg = messages.find((m) => m.sender_name === 'gemma');
     expect(gemmaMsg).toBeDefined();
     expect(gemmaMsg?.content).toContain('Formula 1 (F1)');
 
@@ -67,7 +71,7 @@ describe('Multi-agent context sharing', () => {
     // VERIFY: Gemma's message is in the XML formatted context
     expect(formatted).toContain('sender="gemma"');
     expect(formatted).toContain('Formula 1 (F1)');
-    
+
     // VERIFY: Wyatt's messages are also there
     expect(formatted).toContain('sender="Wyatt"');
     expect(formatted).toContain('Andy, what do you think');

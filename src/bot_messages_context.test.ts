@@ -31,7 +31,7 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
       '2024-01-01T00:00:00.000Z',
       'Andy',
     );
-    
+
     // CURRENT BEHAVIOR: Now should have 1 message
     expect(messages).toHaveLength(1);
   });
@@ -57,7 +57,7 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
       '2024-01-01T00:00:00.000Z',
       'Andy',
     );
-    
+
     // CURRENT BEHAVIOR: This fails because getMessagesSince filters out is_bot_message = 1
     // DESIRED BEHAVIOR: Should have 1 message
     expect(messages).toHaveLength(1);

@@ -290,7 +290,15 @@ export function setLastGroupSync(): void {
  */
 export function storeMessage(msg: NewMessage): void {
   try {
-    logger.debug({ id: msg.id, chat_jid: msg.chat_jid, sender: msg.sender, is_bot: msg.is_bot_message }, 'storeMessage');
+    logger.debug(
+      {
+        id: msg.id,
+        chat_jid: msg.chat_jid,
+        sender: msg.sender,
+        is_bot: msg.is_bot_message,
+      },
+      'storeMessage',
+    );
     db.prepare(
       `INSERT OR REPLACE INTO messages (id, chat_jid, sender, sender_name, content, timestamp, is_from_me, is_bot_message, thread_id, reply_to_message_id, reply_to_message_content, reply_to_sender_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
@@ -308,7 +316,10 @@ export function storeMessage(msg: NewMessage): void {
       msg.reply_to_sender_name ?? null,
     );
   } catch (err) {
-    logger.error({ id: msg.id, chat_jid: msg.chat_jid, err }, 'Failed to store message');
+    logger.error(
+      { id: msg.id, chat_jid: msg.chat_jid, err },
+      'Failed to store message',
+    );
   }
 }
 
@@ -341,7 +352,10 @@ export function storeMessageDirect(msg: {
       msg.thread_id ?? null,
     );
   } catch (err) {
-    logger.error({ id: msg.id, chat_jid: msg.chat_jid, err }, 'Failed to store message direct');
+    logger.error(
+      { id: msg.id, chat_jid: msg.chat_jid, err },
+      'Failed to store message direct',
+    );
   }
 }
 
@@ -401,9 +415,7 @@ export function getMessagesSince(
       LIMIT ?
     ) ORDER BY timestamp
   `;
-  return db
-    .prepare(sql)
-    .all(chatJid, sinceTimestamp, limit) as NewMessage[];
+  return db.prepare(sql).all(chatJid, sinceTimestamp, limit) as NewMessage[];
 }
 
 export function getLastBotMessageTimestamp(

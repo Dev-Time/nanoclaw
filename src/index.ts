@@ -436,7 +436,10 @@ async function sendMessageAndStore(
   threadId?: string,
 ): Promise<void> {
   try {
-    logger.debug({ chatJid, senderName, textLength: text.length }, 'sendMessageAndStore called');
+    logger.debug(
+      { chatJid, senderName, textLength: text.length },
+      'sendMessageAndStore called',
+    );
     const channel = findChannel(channels, chatJid);
     if (!channel) {
       logger.warn({ chatJid }, 'No channel owns JID, cannot send message');
@@ -752,18 +755,23 @@ async function startMessageLoop(): Promise<void> {
                 ASSISTANT_NAME,
                 MAX_MESSAGES_PER_PROMPT,
               );
-              finalMessagesToSend = aliasPending.length > 0 ? aliasPending : groupMessages;
+              finalMessagesToSend =
+                aliasPending.length > 0 ? aliasPending : groupMessages;
             }
           }
 
           // Strip alias prefix before formatting so the container doesn't see "@gemma"
-          let effectiveFormatted = formatMessages(finalMessagesToSend, TIMEZONE);
+          let effectiveFormatted = formatMessages(
+            finalMessagesToSend,
+            TIMEZONE,
+          );
           if (loopAliasResult) {
             // Find the last message in finalMessagesToSend to strip it
-            const lastMsgInFinal = finalMessagesToSend[finalMessagesToSend.length - 1];
+            const lastMsgInFinal =
+              finalMessagesToSend[finalMessagesToSend.length - 1];
             // Only strip if it matches the content we just resolved
             if (lastMsgInFinal.content.includes(loopAliasResult.config.alias)) {
-               lastMsgInFinal.content = loopAliasResult.strippedPrompt;
+              lastMsgInFinal.content = loopAliasResult.strippedPrompt;
             }
             effectiveFormatted = formatMessages(finalMessagesToSend, TIMEZONE);
           }
@@ -773,7 +781,8 @@ async function startMessageLoop(): Promise<void> {
               { chatJid, slotKey, count: finalMessagesToSend.length },
               'Piped messages to active container',
             );
-            lastAgentTimestamp[slotKey] = finalMessagesToSend[finalMessagesToSend.length - 1].timestamp;
+            lastAgentTimestamp[slotKey] =
+              finalMessagesToSend[finalMessagesToSend.length - 1].timestamp;
             saveState();
             // Show typing indicator while the container processes the piped message
             channel
@@ -812,7 +821,7 @@ function recoverPendingMessages(): void {
         'Recovery: found unprocessed messages',
       );
       queue.enqueueMessageCheck(chatJid);
-      
+
       // Also check alias slots for this group
       const modelAliases = loadModelConfigs();
       for (const aliasCfg of modelAliases) {
@@ -825,7 +834,11 @@ function recoverPendingMessages(): void {
         );
         if (aliasPending.length > 0) {
           logger.info(
-            { group: group.name, alias: aliasCfg.alias, pendingCount: aliasPending.length },
+            {
+              group: group.name,
+              alias: aliasCfg.alias,
+              pendingCount: aliasPending.length,
+            },
             'Recovery: found unprocessed messages for alias',
           );
           queue.enqueueMessageCheck(slotKey);
@@ -981,10 +994,12 @@ async function main(): Promise<void> {
     queue,
     onProcess: (groupJid, proc, containerName, groupFolder) =>
       queue.registerProcess(groupJid, proc, containerName, groupFolder),
-    sendMessage: (jid, rawText) => sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
+    sendMessage: (jid, rawText) =>
+      sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
   });
   startIpcWatcher({
-    sendMessage: (jid, rawText) => sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
+    sendMessage: (jid, rawText) =>
+      sendMessageAndStore(jid, rawText, ASSISTANT_NAME),
     registeredGroups: () => registeredGroups,
     registerGroup,
     syncGroups: async (force: boolean) => {
