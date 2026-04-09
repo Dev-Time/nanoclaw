@@ -33,6 +33,12 @@ RUN apt-get update && apt-get install -y \
 # Install poetry
 RUN pip3 install --break-system-packages poetry
 
+# Configure poetry to use the persistent .claude directory for environments and cache
+ENV POETRY_VIRTUALENVS_PATH=/home/node/.claude/poetry/envs
+ENV POETRY_CACHE_DIR=/home/node/.claude/poetry/cache
+ENV POETRY_VIRTUALENVS_CREATE=true
+ENV POETRY_VIRTUALENVS_IN_PROJECT=false
+
 # Set Chromium path for agent-browser
 ENV AGENT_BROWSER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium

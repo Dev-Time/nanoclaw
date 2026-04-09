@@ -4,6 +4,7 @@
  */
 import { ChildProcess, spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import {
@@ -17,6 +18,7 @@ import {
   IDLE_TIMEOUT,
   OLLAMA_ADMIN_TOOLS,
   ONECLI_URL,
+  SEATS_AERO_API_KEY,
   TIMEZONE,
 } from './config.js';
 import {
@@ -241,6 +243,16 @@ function buildVolumeMounts(
     readonly: false,
   });
 
+  // Mount development MCP server if it exists (read-only)
+  const seatsAeroDir = path.join(os.homedir(), 'seats-aero-mcp');
+  if (fs.existsSync(seatsAeroDir)) {
+    mounts.push({
+      hostPath: seatsAeroDir,
+      containerPath: '/workspace/seats-aero-mcp',
+      readonly: true,
+    });
+  }
+
   // Additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(
@@ -279,6 +291,11 @@ async function buildContainerArgs(
   // Forward Ollama admin tools flag if enabled
   if (OLLAMA_ADMIN_TOOLS) {
     args.push('-e', 'OLLAMA_ADMIN_TOOLS=true');
+  }
+
+  // Forward Seats.Aero API key if set
+  if (SEATS_AERO_API_KEY) {
+    args.push('-e', `SEATS_AERO_API_KEY=${SEATS_AERO_API_KEY}`);
   }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.

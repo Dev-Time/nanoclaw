@@ -8,8 +8,9 @@ const OUTPUT_END_MARKER = '---NANOCLAW_OUTPUT_END---';
 
 // Mock config
 vi.mock('./config.js', () => ({
-  ANTHROPIC_BASE_URL: undefined,
-  CLAUDE_CODE_MODEL: undefined,
+  ASSISTANT_NAME: 'Andy',
+  ANTHROPIC_BASE_URL: 'https://api.anthropic.com',
+  CLAUDE_CODE_MODEL: 'claude-3-sonnet-20240229',
   CONTAINER_IMAGE: 'nanoclaw-agent:latest',
   CONTAINER_MAX_OUTPUT_SIZE: 10485760,
   CONTAINER_TIMEOUT: 1800000, // 30min
@@ -18,6 +19,7 @@ vi.mock('./config.js', () => ({
   IDLE_TIMEOUT: 1800000, // 30min
   OLLAMA_ADMIN_TOOLS: false,
   ONECLI_URL: 'http://localhost:10254',
+  SEATS_AERO_API_KEY: undefined,
   TIMEZONE: 'America/Los_Angeles',
 }));
 

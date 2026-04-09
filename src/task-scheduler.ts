@@ -19,7 +19,10 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { logger } from './logger.js';
-import { RegisteredGroup, ScheduledTask } from './types.js';
+import {
+  loadModelConfigs,
+} from './model-router.js';
+import { RegisteredGroup, ScheduledTask, ModelOverride } from './types.js';
 
 /**
  * Compute the next run time for a recurring task, anchored to the
@@ -155,6 +158,16 @@ async function runTask(
   const sessionId =
     task.context_mode === 'group' ? sessions[task.group_folder] : undefined;
 
+  // Resolve model override if task has a model_key
+  const modelKey = task.model_key || undefined;
+  const configs = loadModelConfigs();
+  const modelConfig = modelKey
+    ? configs.find((c) => c.alias === modelKey)
+    : undefined;
+  const modelOverride: ModelOverride | undefined = modelConfig
+    ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
+    : undefined;
+
   // After the task produces a result, close the container promptly.
   // Tasks are single-turn — no need to wait IDLE_TIMEOUT (30 min) for the
   // query loop to time out. A short delay handles any final MCP calls.
@@ -181,6 +194,8 @@ async function runTask(
         isScheduledTask: true,
         assistantName: ASSISTANT_NAME,
         script: task.script || undefined,
+        modelKey,
+        modelOverride,
       },
       (proc, containerName) =>
         deps.onProcess(task.chat_jid, proc, containerName, task.group_folder),

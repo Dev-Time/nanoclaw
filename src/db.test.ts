@@ -248,7 +248,7 @@ describe('getMessagesSince', () => {
       id: 'm3',
       chat_jid: 'group@g.us',
       sender: 'Bot@s.whatsapp.net',
-      sender_name: 'Bot',
+      sender_name: 'Andy',
       content: 'bot reply',
       timestamp: '2024-01-01T00:00:03.000Z',
       is_bot_message: true,

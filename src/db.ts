@@ -46,8 +46,11 @@ function createSchema(database: Database.Database): void {
       group_folder TEXT NOT NULL,
       chat_jid TEXT NOT NULL,
       prompt TEXT NOT NULL,
+      script TEXT,
       schedule_type TEXT NOT NULL,
       schedule_value TEXT NOT NULL,
+      context_mode TEXT DEFAULT 'isolated',
+      model_key TEXT,
       next_run TEXT,
       last_run TEXT,
       last_result TEXT,
@@ -88,53 +91,49 @@ function createSchema(database: Database.Database): void {
     );
   `);
 
-  // Add context_mode column if it doesn't exist (migration for existing DBs)
-  try {
-    database.exec(
-      `ALTER TABLE scheduled_tasks ADD COLUMN context_mode TEXT DEFAULT 'isolated'`,
-    );
-  } catch {
-    /* column already exists */
+  // Migrations for existing databases
+  const migrations = [
+    "ALTER TABLE scheduled_tasks ADD COLUMN context_mode TEXT DEFAULT 'isolated'",
+    'ALTER TABLE scheduled_tasks ADD COLUMN script TEXT',
+    'ALTER TABLE scheduled_tasks ADD COLUMN model_key TEXT',
+    'ALTER TABLE messages ADD COLUMN is_bot_message INTEGER DEFAULT 0',
+    'ALTER TABLE registered_groups ADD COLUMN is_main INTEGER DEFAULT 0',
+    'ALTER TABLE chats ADD COLUMN channel TEXT',
+    'ALTER TABLE chats ADD COLUMN is_group INTEGER DEFAULT 0',
+    'ALTER TABLE messages ADD COLUMN thread_id TEXT',
+    'ALTER TABLE messages ADD COLUMN reply_to_message_id TEXT',
+    'ALTER TABLE messages ADD COLUMN reply_to_message_content TEXT',
+    'ALTER TABLE messages ADD COLUMN reply_to_sender_name TEXT',
+  ];
+
+  for (const sql of migrations) {
+    try {
+      database.exec(sql);
+    } catch {
+      /* column already exists */
+    }
   }
 
-  // Add script column if it doesn't exist (migration for existing DBs)
+  // Backfill: mark existing bot messages that used the content prefix pattern
   try {
-    database.exec(`ALTER TABLE scheduled_tasks ADD COLUMN script TEXT`);
-  } catch {
-    /* column already exists */
-  }
-
-  // Add is_bot_message column if it doesn't exist (migration for existing DBs)
-  try {
-    database.exec(
-      `ALTER TABLE messages ADD COLUMN is_bot_message INTEGER DEFAULT 0`,
-    );
-    // Backfill: mark existing bot messages that used the content prefix pattern
     database
       .prepare(`UPDATE messages SET is_bot_message = 1 WHERE content LIKE ?`)
       .run(`${ASSISTANT_NAME}:%`);
   } catch {
-    /* column already exists */
+    /* ignore */
   }
 
-  // Add is_main column if it doesn't exist (migration for existing DBs)
+  // Backfill: existing rows with folder = 'main' are the main group
   try {
-    database.exec(
-      `ALTER TABLE registered_groups ADD COLUMN is_main INTEGER DEFAULT 0`,
-    );
-    // Backfill: existing rows with folder = 'main' are the main group
     database.exec(
       `UPDATE registered_groups SET is_main = 1 WHERE folder = 'main'`,
     );
   } catch {
-    /* column already exists */
+    /* ignore */
   }
 
-  // Add channel and is_group columns if they don't exist (migration for existing DBs)
+  // Backfill chat channel/group from JID patterns
   try {
-    database.exec(`ALTER TABLE chats ADD COLUMN channel TEXT`);
-    database.exec(`ALTER TABLE chats ADD COLUMN is_group INTEGER DEFAULT 0`);
-    // Backfill from JID patterns
     database.exec(
       `UPDATE chats SET channel = 'whatsapp', is_group = 1 WHERE jid LIKE '%@g.us'`,
     );
@@ -148,19 +147,7 @@ function createSchema(database: Database.Database): void {
       `UPDATE chats SET channel = 'telegram', is_group = 0 WHERE jid LIKE 'tg:%'`,
     );
   } catch {
-    /* columns already exist */
-  }
-
-  // Add reply context columns if they don't exist (migration for existing DBs)
-  try {
-    database.exec(`ALTER TABLE messages ADD COLUMN thread_id TEXT`);
-    database.exec(`ALTER TABLE messages ADD COLUMN reply_to_message_id TEXT`);
-    database.exec(
-      `ALTER TABLE messages ADD COLUMN reply_to_message_content TEXT`,
-    );
-    database.exec(`ALTER TABLE messages ADD COLUMN reply_to_sender_name TEXT`);
-  } catch {
-    /* columns already exist */
+    /* ignore */
   }
 }
 
@@ -423,9 +410,12 @@ export function getLastBotMessageTimestamp(
   const row = db
     .prepare(
       `SELECT MAX(timestamp) as ts FROM messages
-       WHERE chat_jid = ? AND (is_bot_message = 1 OR content LIKE ?)`,
+       WHERE chat_jid = ? AND (
+         (is_bot_message = 1 AND (sender_name = ? OR sender_name IS NULL))
+         OR content LIKE ?
+       )`,
     )
-    .get(chatJid, `${botPrefix}:%`) as { ts: string | null } | undefined;
+    .get(chatJid, botPrefix, `${botPrefix}:%`) as { ts: string | null } | undefined;
   return row?.ts ?? undefined;
 }
 
@@ -434,8 +424,8 @@ export function createTask(
 ): void {
   db.prepare(
     `
-    INSERT INTO scheduled_tasks (id, group_folder, chat_jid, prompt, script, schedule_type, schedule_value, context_mode, next_run, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO scheduled_tasks (id, group_folder, chat_jid, prompt, script, schedule_type, schedule_value, context_mode, model_key, next_run, status, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `,
   ).run(
     task.id,
@@ -446,6 +436,7 @@ export function createTask(
     task.schedule_type,
     task.schedule_value,
     task.context_mode || 'isolated',
+    task.model_key || null,
     task.next_run,
     task.status,
     task.created_at,
@@ -483,6 +474,7 @@ export function updateTask(
       | 'schedule_value'
       | 'next_run'
       | 'status'
+      | 'model_key'
     >
   >,
 ): void {
@@ -512,6 +504,10 @@ export function updateTask(
   if (updates.status !== undefined) {
     fields.push('status = ?');
     values.push(updates.status);
+  }
+  if (updates.model_key !== undefined) {
+    fields.push('model_key = ?');
+    values.push(updates.model_key || null);
   }
 
   if (fields.length === 0) return;

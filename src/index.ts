@@ -324,6 +324,33 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
     // For main groups, we only trigger if there is at least one new user message.
     const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
     if (!hasUserMessage) return true;
+
+    // Skip processing if the message is clearly intended for a different agent.
+    // If it has an alias, and we are not that alias, skip.
+    // If it has NO alias, and we ARE an alias, skip (it's for the default agent).
+    const lastUserMsg = [...missedMessages]
+      .reverse()
+      .find((m) => !m.is_from_me);
+    if (lastUserMsg) {
+      const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
+      if (alias && alias !== 'unknown-alias') {
+        if (alias.config.alias !== modelKey) {
+          logger.debug(
+            { group: group.name, slotKey, alias: alias.config.alias },
+            'Skipping message intended for another alias',
+          );
+          return true;
+        }
+      } else if (modelKey) {
+        // We are an alias slot, but the message has no alias (or is unknown).
+        // It's intended for the default agent (or is a malformed alias).
+        logger.debug(
+          { group: group.name, slotKey },
+          'Skipping message without alias (intended for default agent)',
+        );
+        return true;
+      }
+    }
   }
 
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).

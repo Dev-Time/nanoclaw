@@ -475,6 +475,7 @@ async function runQuery(
         'NotebookEdit',
         'mcp__nanoclaw__*',
         'mcp__ollama__*',
+        'mcp__seats_aero__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -494,6 +495,21 @@ async function runQuery(
           command: 'node',
           args: [path.join(path.dirname(mcpServerPath), 'ollama-mcp-stdio.js')],
         },
+        ...(fs.existsSync('/workspace/seats-aero-mcp')
+          ? {
+              seats_aero: {
+                command: 'sh',
+                args: [
+                  '-c',
+                  'mkdir -p /home/node/.claude/seats-aero-data && cd /workspace/seats-aero-mcp && poetry install --no-interaction --no-root && poetry run python src/mcp_server.py',
+                ],
+                env: {
+                  SEATS_AERO_API_KEY: process.env.SEATS_AERO_API_KEY || '',
+                  SEATS_AERO_DATA_DIR: '/home/node/.claude/seats-aero-data',
+                },
+              },
+            }
+          : {}),
       },
       hooks: {
         PreCompact: [
