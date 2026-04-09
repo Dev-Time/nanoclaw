@@ -19,9 +19,7 @@ import {
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
 import { logger } from './logger.js';
-import {
-  loadModelConfigs,
-} from './model-router.js';
+import { loadModelConfigs } from './model-router.js';
 import { RegisteredGroup, ScheduledTask, ModelOverride } from './types.js';
 
 /**

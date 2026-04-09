@@ -501,11 +501,14 @@ async function runQuery(
                 command: 'sh',
                 args: [
                   '-c',
-                  'mkdir -p /home/node/.claude/seats-aero-data && cd /workspace/seats-aero-mcp && poetry install --no-interaction --no-root && poetry run python src/mcp_server.py',
+                  `mkdir -p /home/node/.claude/seats-aero-data "${process.env.SEATS_AERO_LOG_DIR || '/home/node/.claude/seats-aero-logs'}" && cd /workspace/seats-aero-mcp && poetry install --no-interaction --no-root && poetry run python src/mcp_server.py`,
                 ],
                 env: {
                   SEATS_AERO_API_KEY: process.env.SEATS_AERO_API_KEY || '',
                   SEATS_AERO_DATA_DIR: '/home/node/.claude/seats-aero-data',
+                  SEATS_AERO_LOG_DIR:
+                    process.env.SEATS_AERO_LOG_DIR ||
+                    '/home/node/.claude/seats-aero-logs',
                 },
               },
             }

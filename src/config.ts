@@ -14,6 +14,7 @@ const envConfig = readEnvFile([
   'ANTHROPIC_BASE_URL',
   'CLAUDE_CODE_MODEL',
   'SEATS_AERO_API_KEY',
+  'SEATS_AERO_LOG_DIR',
 ]);
 
 export const ASSISTANT_NAME =
@@ -64,6 +65,8 @@ export const CLAUDE_CODE_MODEL =
   process.env.CLAUDE_CODE_MODEL || envConfig.CLAUDE_CODE_MODEL;
 export const SEATS_AERO_API_KEY =
   process.env.SEATS_AERO_API_KEY || envConfig.SEATS_AERO_API_KEY;
+export const SEATS_AERO_LOG_DIR =
+  process.env.SEATS_AERO_LOG_DIR || envConfig.SEATS_AERO_LOG_DIR;
 export const MAX_MESSAGES_PER_PROMPT = Math.max(
   1,
   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,

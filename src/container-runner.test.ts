@@ -20,6 +20,7 @@ vi.mock('./config.js', () => ({
   OLLAMA_ADMIN_TOOLS: false,
   ONECLI_URL: 'http://localhost:10254',
   SEATS_AERO_API_KEY: undefined,
+  SEATS_AERO_LOG_DIR: undefined,
   TIMEZONE: 'America/Los_Angeles',
 }));
 
@@ -112,6 +113,7 @@ vi.mock('child_process', async () => {
 
 import { runContainerAgent, ContainerOutput } from './container-runner.js';
 import type { RegisteredGroup } from './types.js';
+import { spawn } from 'child_process';
 
 const testGroup: RegisteredGroup = {
   name: 'Test Group',
@@ -230,5 +232,21 @@ describe('container-runner timeout behavior', () => {
     const result = await resultPromise;
     expect(result.status).toBe('success');
     expect(result.newSessionId).toBe('session-456');
+  });
+});
+
+describe('container-runner environment variables', () => {
+  beforeEach(() => {
+    fakeProc = createFakeProcess();
+  });
+
+  it('passes SEATS_AERO_LOG_DIR to spawn', async () => {
+    runContainerAgent(testGroup, testInput, () => {});
+
+    // Need to let buildContainerArgs (which is async) finish
+    await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
+
+    const spawnArgs = vi.mocked(spawn).mock.calls[0][1];
+    expect(spawnArgs).toContain('SEATS_AERO_LOG_DIR=/home/node/.claude/seats-aero-logs');
   });
 });

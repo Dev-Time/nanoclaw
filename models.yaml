@@ -25,3 +25,30 @@ models:
   - alias: gemma
     base_url: http://host.docker.internal:11434
     model: gemma4:26b
+  - alias: nemo2
+    base_url: http://host.docker.internal:11434
+    model: nemotron-cascade-2:30b
+  - alias: nemo3
+    base_url: http://host.docker.internal:11434
+    model: nemotron-3-nano:30b
+  - alias: mini3
+    base_url: http://host.docker.internal:11434
+    model: ministral-3:14b
+  - alias: glm4
+    base_url: http://host.docker.internal:11434
+    model: glm-4.7-flash:q4_K_M
+  - alias: dev2
+    base_url: http://host.docker.internal:11434
+    model: devstral-small-2:24b
+  - alias: qwen35
+    base_url: http://host.docker.internal:11434
+    model: qwen3.5:27b
+  - alias: gemmad
+    base_url: http://host.docker.internal:11434
+    model: gemma4:31b
+  - alias: auto
+    base_url: https://openrouter.ai/api/v1
+    model: openrouter/auto
+  - alias: gemini
+    base_url: https://openrouter.ai/api/v1
+    model: google/gemini-3-flash-preview

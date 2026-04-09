@@ -415,7 +415,9 @@ export function getLastBotMessageTimestamp(
          OR content LIKE ?
        )`,
     )
-    .get(chatJid, botPrefix, `${botPrefix}:%`) as { ts: string | null } | undefined;
+    .get(chatJid, botPrefix, `${botPrefix}:%`) as
+    | { ts: string | null }
+    | undefined;
   return row?.ts ?? undefined;
 }
 

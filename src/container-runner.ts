@@ -19,6 +19,7 @@ import {
   OLLAMA_ADMIN_TOOLS,
   ONECLI_URL,
   SEATS_AERO_API_KEY,
+  SEATS_AERO_LOG_DIR,
   TIMEZONE,
 } from './config.js';
 import {
@@ -297,6 +298,12 @@ async function buildContainerArgs(
   if (SEATS_AERO_API_KEY) {
     args.push('-e', `SEATS_AERO_API_KEY=${SEATS_AERO_API_KEY}`);
   }
+
+  // Forward Seats.Aero LOG_DIR if set, otherwise use default writable path
+  args.push(
+    '-e',
+    `SEATS_AERO_LOG_DIR=${SEATS_AERO_LOG_DIR || '/home/node/.claude/seats-aero-logs'}`,
+  );
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.
