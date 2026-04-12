@@ -562,8 +562,35 @@ async function runQuery(
         : message.type;
     log(`[msg #${messageCount}] type=${msgType}`);
 
-    if (message.type === 'assistant' && 'uuid' in message) {
-      lastAssistantUuid = (message as { uuid: string }).uuid;
+    if (message.type === 'assistant') {
+      if ('uuid' in message) {
+        lastAssistantUuid = (message as { uuid: string }).uuid;
+      }
+
+      const contentBlocks = (message as any).message?.content;
+      if (Array.isArray(contentBlocks)) {
+        const thoughts: string[] = [];
+        for (const block of contentBlocks) {
+          if (block.type === 'thinking' && typeof block.thinking === 'string') {
+            thoughts.push(`🤔 *Thinking*\n${block.thinking}`);
+          } else if (block.type === 'text' && typeof block.text === 'string') {
+            const match = block.text.match(/<think>([\s\S]*?)<\/think>/);
+            if (match) {
+              thoughts.push(`🤔 *Thinking*\n${match[1].trim()}`);
+            }
+          } else if (block.type === 'tool_use' && typeof block.name === 'string') {
+            thoughts.push(`🛠️ *Tool Call: ${block.name}*`);
+          }
+        }
+
+        if (thoughts.length > 0) {
+          writeOutput({
+            status: 'success',
+            result: thoughts.join('\n\n'),
+            newSessionId,
+          });
+        }
+      }
     }
 
     if (message.type === 'system' && message.subtype === 'init') {
@@ -587,14 +614,20 @@ async function runQuery(
 
     if (message.type === 'result') {
       resultCount++;
-      const textResult =
+      let textResult =
         'result' in message ? (message as { result?: string }).result : null;
+
+      // Prevent duplication of thinking blocks in final result
+      if (textResult) {
+        textResult = textResult.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+      }
+
       log(
         `Result #${resultCount}: subtype=${message.subtype}${textResult ? ` text=${textResult.slice(0, 200)}` : ''}`,
       );
       writeOutput({
         status: 'success',
-        result: textResult || null,
+        result: (textResult || null) as string | null,
         newSessionId,
       });
     }
