@@ -33,6 +33,9 @@ RUN apt-get update && apt-get install -y \
 # Install poetry
 RUN pip3 install --break-system-packages poetry
 
+# install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 # Configure poetry to use the persistent .claude directory for environments and cache
 ENV POETRY_VIRTUALENVS_PATH=/home/node/.claude/poetry/envs
 ENV POETRY_CACHE_DIR=/home/node/.claude/poetry/cache

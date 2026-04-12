@@ -19,9 +19,13 @@ import {
   OLLAMA_ADMIN_TOOLS,
   ONECLI_URL,
   SEATS_AERO_API_KEY,
+  SEATS_AERO_DATA_DIR,
   SEATS_AERO_LOG_DIR,
+  BRAVE_API_KEY,
+  PARALLEL_API_KEY,
   TIMEZONE,
-} from './config.js';
+  } from './config.js';
+
 import {
   resolveGroupFolderPath,
   resolveGroupIpcPath,
@@ -254,6 +258,26 @@ function buildVolumeMounts(
     });
   }
 
+  // Mount Seats.Aero logs if configured (read-write)
+  const hostLogDir =
+    SEATS_AERO_LOG_DIR || path.join(DATA_DIR, 'seats-aero-logs');
+  fs.mkdirSync(hostLogDir, { recursive: true });
+  mounts.push({
+    hostPath: hostLogDir,
+    containerPath: '/home/node/.claude/seats-aero-logs',
+    readonly: false,
+  });
+
+  // Mount Seats.Aero data if configured (read-write)
+  const hostDataDir =
+    SEATS_AERO_DATA_DIR || path.join(DATA_DIR, 'seats-aero-data');
+  fs.mkdirSync(hostDataDir, { recursive: true });
+  mounts.push({
+    hostPath: hostDataDir,
+    containerPath: '/home/node/.claude/seats-aero-data',
+    readonly: false,
+  });
+
   // Additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(
@@ -299,11 +323,19 @@ async function buildContainerArgs(
     args.push('-e', `SEATS_AERO_API_KEY=${SEATS_AERO_API_KEY}`);
   }
 
-  // Forward Seats.Aero LOG_DIR if set, otherwise use default writable path
-  args.push(
-    '-e',
-    `SEATS_AERO_LOG_DIR=${SEATS_AERO_LOG_DIR || '/home/node/.claude/seats-aero-logs'}`,
-  );
+  // Forward Brave Search API key if set
+  if (BRAVE_API_KEY) {
+    args.push('-e', `BRAVE_API_KEY=${BRAVE_API_KEY}`);
+  }
+
+  // Forward Parallel AI API key if set
+  if (PARALLEL_API_KEY) {
+    args.push('-e', `PARALLEL_API_KEY=${PARALLEL_API_KEY}`);
+  }
+
+  // Forward Seats.Aero LOG_DIR and DATA_DIR to the MOUNTED paths inside the container
+  args.push('-e', 'SEATS_AERO_LOG_DIR=/home/node/.claude/seats-aero-logs');
+  args.push('-e', 'SEATS_AERO_DATA_DIR=/home/node/.claude/seats-aero-data');
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.

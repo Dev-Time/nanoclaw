@@ -476,6 +476,9 @@ async function runQuery(
         'mcp__nanoclaw__*',
         'mcp__ollama__*',
         'mcp__seats_aero__*',
+        'mcp__brave__*',
+        'mcp__parallel-search__*',
+        'mcp__parallel-task__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -495,20 +498,51 @@ async function runQuery(
           command: 'node',
           args: [path.join(path.dirname(mcpServerPath), 'ollama-mcp-stdio.js')],
         },
+        ...(process.env.BRAVE_API_KEY
+          ? {
+              brave: {
+                command: 'npx',
+                args: ['-y', '@modelcontextprotocol/server-brave-search'],
+                env: {
+                  BRAVE_API_KEY: process.env.BRAVE_API_KEY,
+                },
+              },
+            }
+          : {}),
         ...(fs.existsSync('/workspace/seats-aero-mcp')
           ? {
               seats_aero: {
                 command: 'sh',
                 args: [
                   '-c',
-                  `mkdir -p /home/node/.claude/seats-aero-data "${process.env.SEATS_AERO_LOG_DIR || '/home/node/.claude/seats-aero-logs'}" && cd /workspace/seats-aero-mcp && poetry install --no-interaction --no-root && poetry run python src/mcp_server.py`,
+                  `mkdir -p "${process.env.SEATS_AERO_DATA_DIR || '/home/node/.claude/seats-aero-data'}" "${process.env.SEATS_AERO_LOG_DIR || '/home/node/.claude/seats-aero-logs'}" && cd /workspace/seats-aero-mcp && poetry install --no-interaction --no-root && poetry run python src/mcp_server.py`,
                 ],
                 env: {
                   SEATS_AERO_API_KEY: process.env.SEATS_AERO_API_KEY || '',
-                  SEATS_AERO_DATA_DIR: '/home/node/.claude/seats-aero-data',
+                  SEATS_AERO_DATA_DIR:
+                    process.env.SEATS_AERO_DATA_DIR ||
+                    '/home/node/.claude/seats-aero-data',
                   SEATS_AERO_LOG_DIR:
                     process.env.SEATS_AERO_LOG_DIR ||
                     '/home/node/.claude/seats-aero-logs',
+                },
+              },
+            }
+          : {}),
+        ...(process.env.PARALLEL_API_KEY
+          ? {
+              'parallel-search': {
+                type: 'http' as const,
+                url: 'https://search-mcp.parallel.ai/mcp',
+                headers: {
+                  Authorization: `Bearer ${process.env.PARALLEL_API_KEY}`,
+                },
+              },
+              'parallel-task': {
+                type: 'http' as const,
+                url: 'https://task-mcp.parallel.ai/mcp',
+                headers: {
+                  Authorization: `Bearer ${process.env.PARALLEL_API_KEY}`,
                 },
               },
             }

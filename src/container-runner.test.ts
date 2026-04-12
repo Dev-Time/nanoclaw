@@ -21,6 +21,7 @@ vi.mock('./config.js', () => ({
   ONECLI_URL: 'http://localhost:10254',
   SEATS_AERO_API_KEY: undefined,
   SEATS_AERO_LOG_DIR: undefined,
+  SEATS_AERO_DATA_DIR: undefined,
   TIMEZONE: 'America/Los_Angeles',
 }));
 
@@ -240,13 +241,25 @@ describe('container-runner environment variables', () => {
     fakeProc = createFakeProcess();
   });
 
-  it('passes SEATS_AERO_LOG_DIR to spawn', async () => {
+  it('passes SEATS_AERO_LOG_DIR, SEATS_AERO_DATA_DIR and mounts directories to spawn', async () => {
     runContainerAgent(testGroup, testInput, () => {});
 
     // Need to let buildContainerArgs (which is async) finish
     await vi.waitFor(() => expect(spawn).toHaveBeenCalled());
 
     const spawnArgs = vi.mocked(spawn).mock.calls[0][1];
-    expect(spawnArgs).toContain('SEATS_AERO_LOG_DIR=/home/node/.claude/seats-aero-logs');
+    expect(spawnArgs).toContain(
+      'SEATS_AERO_LOG_DIR=/home/node/.claude/seats-aero-logs',
+    );
+    expect(spawnArgs).toContain(
+      'SEATS_AERO_DATA_DIR=/home/node/.claude/seats-aero-data',
+    );
+    // Verify mounts (DATA_DIR is mocked as /tmp/nanoclaw-test-data)
+    expect(spawnArgs).toContain(
+      '/tmp/nanoclaw-test-data/seats-aero-logs:/home/node/.claude/seats-aero-logs',
+    );
+    expect(spawnArgs).toContain(
+      '/tmp/nanoclaw-test-data/seats-aero-data:/home/node/.claude/seats-aero-data',
+    );
   });
 });

@@ -15,6 +15,9 @@ const envConfig = readEnvFile([
   'CLAUDE_CODE_MODEL',
   'SEATS_AERO_API_KEY',
   'SEATS_AERO_LOG_DIR',
+  'SEATS_AERO_DATA_DIR',
+  'BRAVE_API_KEY',
+  'PARALLEL_API_KEY',
 ]);
 
 export const ASSISTANT_NAME =
@@ -67,6 +70,12 @@ export const SEATS_AERO_API_KEY =
   process.env.SEATS_AERO_API_KEY || envConfig.SEATS_AERO_API_KEY;
 export const SEATS_AERO_LOG_DIR =
   process.env.SEATS_AERO_LOG_DIR || envConfig.SEATS_AERO_LOG_DIR;
+export const SEATS_AERO_DATA_DIR =
+  process.env.SEATS_AERO_DATA_DIR || envConfig.SEATS_AERO_DATA_DIR;
+export const BRAVE_API_KEY =
+  process.env.BRAVE_API_KEY || envConfig.BRAVE_API_KEY;
+export const PARALLEL_API_KEY =
+  process.env.PARALLEL_API_KEY || envConfig.PARALLEL_API_KEY;
 export const MAX_MESSAGES_PER_PROMPT = Math.max(
   1,
   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,

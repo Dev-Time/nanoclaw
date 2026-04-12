@@ -8,10 +8,23 @@ import { logger } from './logger.js';
 export function extractSessionCommand(
   content: string,
   triggerPattern: RegExp,
+  modelKey?: string,
 ): string | null {
   let text = content.trim();
-  text = text.replace(triggerPattern, '').trim();
-  if (text === '/compact') return '/compact';
+
+  // Try stripping model alias first if it matches our modelKey
+  if (modelKey) {
+    const match = /^@([\w][\w-]*)\b/i.exec(text);
+    if (match && match[1].toLowerCase() === modelKey.toLowerCase()) {
+      text = text.slice(match[0].length).trim();
+    } else {
+      text = text.replace(triggerPattern, '').trim();
+    }
+  } else {
+    text = text.replace(triggerPattern, '').trim();
+  }
+
+  if (text === '/compact' || text === '/models') return text;
   return null;
 }
 
@@ -45,6 +58,8 @@ export interface SessionCommandDeps {
   formatMessages: (msgs: NewMessage[], timezone: string) => string;
   /** Whether the denied sender would normally be allowed to interact (for denial messages). */
   canSenderInteract: (msg: NewMessage) => boolean;
+  /** Get available model aliases (for /models). */
+  getAvailableModelAliases: () => string[];
 }
 
 function resultToText(result: string | object | null | undefined): string {
@@ -66,6 +81,7 @@ export async function handleSessionCommand(opts: {
   triggerPattern: RegExp;
   timezone: string;
   deps: SessionCommandDeps;
+  modelKey?: string;
 }): Promise<{ handled: false } | { handled: true; success: boolean }> {
   const {
     missedMessages,
@@ -74,13 +90,14 @@ export async function handleSessionCommand(opts: {
     triggerPattern,
     timezone,
     deps,
+    modelKey,
   } = opts;
 
   const cmdMsg = missedMessages.find(
-    (m) => extractSessionCommand(m.content, triggerPattern) !== null,
+    (m) => extractSessionCommand(m.content, triggerPattern, modelKey) !== null,
   );
   const command = cmdMsg
-    ? extractSessionCommand(cmdMsg.content, triggerPattern)
+    ? extractSessionCommand(cmdMsg.content, triggerPattern, modelKey)
     : null;
 
   if (!command || !cmdMsg) return { handled: false };
@@ -99,6 +116,17 @@ export async function handleSessionCommand(opts: {
 
   // AUTHORIZED: process pre-compact messages first, then run the command
   logger.info({ group: groupName, command }, 'Session command');
+
+  if (command === '/models') {
+    const aliases = deps.getAvailableModelAliases();
+    const text =
+      aliases.length > 0
+        ? `Available model aliases:\n${aliases.map((a) => `@${a}`).join('\n')}`
+        : 'No model aliases configured.';
+    await deps.sendMessage(text);
+    deps.advanceCursor(cmdMsg.timestamp);
+    return { handled: true, success: true };
+  }
 
   const cmdIndex = missedMessages.indexOf(cmdMsg);
   const preCompactMsgs = missedMessages.slice(0, cmdIndex);

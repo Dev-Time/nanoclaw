@@ -18,6 +18,14 @@ describe('extractSessionCommand', () => {
     expect(extractSessionCommand('@Andy /compact', trigger)).toBe('/compact');
   });
 
+  it('detects bare /models', () => {
+    expect(extractSessionCommand('/models', trigger)).toBe('/models');
+  });
+
+  it('detects /models with trigger prefix', () => {
+    expect(extractSessionCommand('@Andy /models', trigger)).toBe('/models');
+  });
+
   it('rejects /compact with extra text', () => {
     expect(extractSessionCommand('/compact now please', trigger)).toBeNull();
   });
@@ -38,6 +46,28 @@ describe('extractSessionCommand', () => {
 
   it('is case-sensitive for the command', () => {
     expect(extractSessionCommand('/Compact', trigger)).toBeNull();
+  });
+
+  it('detects /compact with model alias', () => {
+    expect(extractSessionCommand('@sonnet /compact', trigger, 'sonnet')).toBe(
+      '/compact',
+    );
+  });
+
+  it('detects /models with model alias', () => {
+    expect(extractSessionCommand('@sonnet /models', trigger, 'sonnet')).toBe(
+      '/models',
+    );
+  });
+
+  it('rejects /compact with wrong model alias', () => {
+    expect(
+      extractSessionCommand('@gpt4 /compact', trigger, 'sonnet'),
+    ).toBeNull();
+  });
+
+  it('ignores model alias when no modelKey provided', () => {
+    expect(extractSessionCommand('@sonnet /compact', trigger)).toBeNull();
   });
 });
 
@@ -85,6 +115,7 @@ function makeDeps(
     advanceCursor: vi.fn(),
     formatMessages: vi.fn().mockReturnValue('<formatted>'),
     canSenderInteract: vi.fn().mockReturnValue(true),
+    getAvailableModelAliases: vi.fn().mockReturnValue(['gemma', 'llama3']),
     ...overrides,
   };
 }
@@ -103,6 +134,44 @@ describe('handleSessionCommand', () => {
       deps,
     });
     expect(result.handled).toBe(false);
+  });
+
+  it('handles authorized /models in main group', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/models')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result).toEqual({ handled: true, success: true });
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('@gemma'),
+    );
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('@llama3'),
+    );
+    expect(deps.runAgent).not.toHaveBeenCalled();
+    expect(deps.advanceCursor).toHaveBeenCalledWith('100');
+  });
+
+  it('handles authorized /models with no aliases configured', async () => {
+    const deps = makeDeps({ getAvailableModelAliases: vi.fn().mockReturnValue([]) });
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/models')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result).toEqual({ handled: true, success: true });
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      'No model aliases configured.',
+    );
+    expect(deps.runAgent).not.toHaveBeenCalled();
   });
 
   it('handles authorized /compact in main group', async () => {

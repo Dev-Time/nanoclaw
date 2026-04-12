@@ -295,7 +295,9 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
               isTriggerAllowed(chatJid, msg.sender, loadSenderAllowlist())))
         );
       },
+      getAvailableModelAliases,
     },
+    modelKey,
   });
   if (cmdResult.handled) return cmdResult.success;
   // --- End session command interception ---
@@ -678,13 +680,33 @@ async function startMessageLoop(): Promise<void> {
 
           // --- Session command interception (message loop) ---
           // Scan ALL messages in the batch for a session command.
-          const loopCmdMsg = groupMessages.find(
-            (m) =>
+          let loopCmdSlotKey = chatJid;
+          const loopCmdMsg = groupMessages.find((m) => {
+            // Check default trigger
+            if (
               extractSessionCommand(
                 m.content,
                 getTriggerPattern(group.trigger),
-              ) !== null,
-          );
+              ) !== null
+            ) {
+              return true;
+            }
+            // Check all known aliases
+            const aliasResult = resolveModelAlias(m.content, group.trigger);
+            if (aliasResult && aliasResult !== 'unknown-alias') {
+              if (
+                aliasResult.strippedPrompt === '/compact' ||
+                aliasResult.strippedPrompt === '/models'
+              ) {
+                loopCmdSlotKey = makeSlotKey(
+                  chatJid,
+                  aliasResult.config.alias,
+                );
+                return true;
+              }
+            }
+            return false;
+          });
 
           if (loopCmdMsg) {
             // Only close active container if the sender is authorized — otherwise an
@@ -696,12 +718,12 @@ async function startMessageLoop(): Promise<void> {
                 loopCmdMsg.is_from_me === true,
               )
             ) {
-              queue.closeStdin(chatJid);
+              queue.closeStdin(loopCmdSlotKey);
             }
             // Enqueue so processGroupMessages handles auth + cursor advancement.
             // Don't pipe via IPC — slash commands need a fresh container with
             // string prompt (not MessageStream) for SDK recognition.
-            queue.enqueueMessageCheck(chatJid);
+            queue.enqueueMessageCheck(loopCmdSlotKey);
             continue;
           }
           // --- End session command interception ---
