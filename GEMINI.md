@@ -50,7 +50,7 @@ Before creating a PR, adding a skill, or preparing any contribution, you MUST re
 
 ## Testing & Regression
 
-**STOP DELETING TESTS.** All regression tests (e.g., `src/*.test.ts`) created to fix bugs or verify features MUST be kept in the repository. They ensure future changes don't break the multi-agent context or storage logic.
+**STOP DELETING TESTS.** Always keep and maintain regression tests (e.g., `src/*.test.ts`) created to verify features or fixes; do NOT delete them after the task is complete. They ensure future changes don't break the multi-agent context, storage logic, or existing functionality.
 
 Run all tests before submitting:
 ```bash
