@@ -176,6 +176,11 @@ function buildVolumeMounts(
             // Enable Claude's memory feature (persists user preferences between sessions)
             // https://code.claude.com/docs/en/memory#manage-auto-memory
             CLAUDE_CODE_DISABLE_AUTO_MEMORY: '0',
+            // Enable conversation auto-compaction
+            // https://code.claude.com/docs/en/compaction#enable-auto-compaction
+            CLAUDE_CODE_AUTO_COMPACT: '1',
+            // Trigger compaction when context reaches 100,000 tokens
+            CLAUDE_CODE_AUTO_COMPACT_WINDOW: '100000',
           },
         },
         null,
