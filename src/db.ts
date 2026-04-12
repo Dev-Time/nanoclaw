@@ -585,6 +585,21 @@ export function setRouterState(key: string, value: string): void {
   ).run(key, value);
 }
 
+// --- Chat-level preferences ---
+
+export function getChatModel(chatJid: string): string | undefined {
+  return getRouterState(`chat_model:${chatJid}`);
+}
+
+export function setChatModel(chatJid: string, modelAlias: string | null): void {
+  const key = `chat_model:${chatJid}`;
+  if (modelAlias === null) {
+    db.prepare('DELETE FROM router_state WHERE key = ?').run(key);
+  } else {
+    setRouterState(key, modelAlias);
+  }
+}
+
 // --- Session accessors ---
 
 export function getSession(groupFolder: string): string | undefined {

@@ -39,6 +39,8 @@ import {
   getMessagesSince,
   getNewMessages,
   getRouterState,
+  getChatModel,
+  setChatModel,
   initDatabase,
   setRegisteredGroup,
   setRouterState,
@@ -296,6 +298,9 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
         );
       },
       getAvailableModelAliases,
+      chatJid,
+      getChatModel,
+      setChatModel,
     },
     modelKey,
   });
@@ -683,20 +688,26 @@ async function startMessageLoop(): Promise<void> {
           let loopCmdSlotKey = chatJid;
           const loopCmdMsg = groupMessages.find((m) => {
             // Check default trigger
-            if (
-              extractSessionCommand(
-                m.content,
-                getTriggerPattern(group.trigger),
-              ) !== null
-            ) {
-              return true;
+            const defaultCmd = extractSessionCommand(
+              m.content,
+              getTriggerPattern(group.trigger),
+            );
+            if (defaultCmd !== null) {
+              if (defaultCmd === '/compact' || defaultCmd === '/models' || defaultCmd === '/model' || defaultCmd.startsWith('/model ')) {
+                const savedAlias = getChatModel(chatJid);
+                loopCmdSlotKey = savedAlias ? makeSlotKey(chatJid, savedAlias) : chatJid;
+                return true;
+              }
             }
             // Check all known aliases
             const aliasResult = resolveModelAlias(m.content, group.trigger);
             if (aliasResult && aliasResult !== 'unknown-alias') {
+              const stripped = aliasResult.strippedPrompt;
               if (
-                aliasResult.strippedPrompt === '/compact' ||
-                aliasResult.strippedPrompt === '/models'
+                stripped === '/compact' ||
+                stripped === '/models' ||
+                stripped === '/model' ||
+                stripped.startsWith('/model ')
               ) {
                 loopCmdSlotKey = makeSlotKey(chatJid, aliasResult.config.alias);
                 return true;
@@ -779,9 +790,16 @@ async function startMessageLoop(): Promise<void> {
           }
 
           // Compute the slotKey now that we know if it's an alias.
-          const slotKey = loopAliasResult
-            ? makeSlotKey(chatJid, loopAliasResult.config.alias)
-            : chatJid;
+          // If no explicit alias is provided, check for a saved default model for this chat.
+          let slotKey = chatJid;
+          if (loopAliasResult) {
+            slotKey = makeSlotKey(chatJid, loopAliasResult.config.alias);
+          } else {
+            const savedAlias = getChatModel(chatJid);
+            if (savedAlias) {
+              slotKey = makeSlotKey(chatJid, savedAlias);
+            }
+          }
 
           // Pull all messages since this slot's lastAgentTimestamp so non-trigger
           // context that accumulated between triggers is included.
@@ -839,6 +857,7 @@ async function startMessageLoop(): Promise<void> {
  */
 function recoverPendingMessages(): void {
   for (const [chatJid, group] of Object.entries(registeredGroups)) {
+    // Check default slot
     const pending = getMessagesSince(
       chatJid,
       getOrRecoverCursor(chatJid),
@@ -851,28 +870,28 @@ function recoverPendingMessages(): void {
         'Recovery: found unprocessed messages',
       );
       queue.enqueueMessageCheck(chatJid);
+    }
 
-      // Also check alias slots for this group
-      const modelAliases = loadModelConfigs();
-      for (const aliasCfg of modelAliases) {
-        const slotKey = makeSlotKey(chatJid, aliasCfg.alias);
-        const aliasPending = getMessagesSince(
-          chatJid,
-          getOrRecoverCursor(slotKey),
-          ASSISTANT_NAME,
-          MAX_MESSAGES_PER_PROMPT,
+    // Check all known alias slots for this group
+    const modelAliases = loadModelConfigs();
+    for (const aliasCfg of modelAliases) {
+      const slotKey = makeSlotKey(chatJid, aliasCfg.alias);
+      const aliasPending = getMessagesSince(
+        chatJid,
+        getOrRecoverCursor(slotKey),
+        ASSISTANT_NAME,
+        MAX_MESSAGES_PER_PROMPT,
+      );
+      if (aliasPending.length > 0) {
+        logger.info(
+          {
+            group: group.name,
+            alias: aliasCfg.alias,
+            pendingCount: aliasPending.length,
+          },
+          'Recovery: found unprocessed messages for alias',
         );
-        if (aliasPending.length > 0) {
-          logger.info(
-            {
-              group: group.name,
-              alias: aliasCfg.alias,
-              pendingCount: aliasPending.length,
-            },
-            'Recovery: found unprocessed messages for alias',
-          );
-          queue.enqueueMessageCheck(slotKey);
-        }
+        queue.enqueueMessageCheck(slotKey);
       }
     }
   }

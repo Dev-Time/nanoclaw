@@ -24,7 +24,9 @@ export function extractSessionCommand(
     text = text.replace(triggerPattern, '').trim();
   }
 
-  if (text === '/compact' || text === '/models') return text;
+  if (text === '/compact' || text === '/models' || text === '/model' || text.startsWith('/model ')) {
+    return text;
+  }
   return null;
 }
 
@@ -60,6 +62,10 @@ export interface SessionCommandDeps {
   canSenderInteract: (msg: NewMessage) => boolean;
   /** Get available model aliases (for /models). */
   getAvailableModelAliases: () => string[];
+  /** Get/set the default model alias for the current chat. */
+  chatJid: string;
+  getChatModel: (chatJid: string) => string | undefined;
+  setChatModel: (chatJid: string, modelAlias: string | null) => void;
 }
 
 function resultToText(result: string | object | null | undefined): string {
@@ -124,6 +130,41 @@ export async function handleSessionCommand(opts: {
         ? `Available model aliases:\n${aliases.map((a) => `@${a}`).join('\n')}`
         : 'No model aliases configured.';
     await deps.sendMessage(text);
+    deps.advanceCursor(cmdMsg.timestamp);
+    return { handled: true, success: true };
+  }
+
+  if (command === '/model' || command.startsWith('/model ')) {
+    const args = command.slice(6).trim(); // Skip "/model"
+    const aliases = deps.getAvailableModelAliases();
+
+    if (!args) {
+      // Show current model
+      const current = deps.getChatModel(deps.chatJid);
+      const text = current
+        ? `Current default model for this chat: @${current}`
+        : 'Currently using the system default model for this chat.';
+      await deps.sendMessage(text);
+    } else if (args.toLowerCase() === 'default') {
+      // Revert to default
+      deps.setChatModel(deps.chatJid, null);
+      await deps.sendMessage('Reverted to the system default model for this chat.');
+    } else {
+      // Set to alias
+      const normalizedAlias = args.startsWith('@') ? args.slice(1) : args;
+      const found = aliases.find((a) => a.toLowerCase() === normalizedAlias.toLowerCase());
+
+      if (found) {
+        deps.setChatModel(deps.chatJid, found);
+        await deps.sendMessage(`Default model for this chat set to: @${found}`);
+      } else {
+        const errorMsg = aliases.length > 0
+          ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
+          : 'No model aliases configured.';
+        await deps.sendMessage(errorMsg);
+      }
+    }
+
     deps.advanceCursor(cmdMsg.timestamp);
     return { handled: true, success: true };
   }

@@ -60,7 +60,23 @@ describe('extractSessionCommand', () => {
     );
   });
 
-  it('rejects /compact with wrong model alias', () => {
+  it('detects /model', () => {
+    expect(extractSessionCommand('/model', trigger)).toBe('/model');
+  });
+
+  it('detects /model with arguments', () => {
+    expect(extractSessionCommand('/model llama3', trigger)).toBe(
+      '/model llama3',
+    );
+  });
+
+  it('detects /model with trigger prefix', () => {
+    expect(extractSessionCommand('@Andy /model gemma', trigger)).toBe(
+      '/model gemma',
+    );
+  });
+
+  it('rejects /compact with extra text', () => {
     expect(
       extractSessionCommand('@gpt4 /compact', trigger, 'sonnet'),
     ).toBeNull();
@@ -116,6 +132,9 @@ function makeDeps(
     formatMessages: vi.fn().mockReturnValue('<formatted>'),
     canSenderInteract: vi.fn().mockReturnValue(true),
     getAvailableModelAliases: vi.fn().mockReturnValue(['gemma', 'llama3']),
+    chatJid: 'chat@test',
+    getChatModel: vi.fn().mockReturnValue(undefined),
+    setChatModel: vi.fn(),
     ...overrides,
   };
 }
@@ -174,6 +193,89 @@ describe('handleSessionCommand', () => {
       'No model aliases configured.',
     );
     expect(deps.runAgent).not.toHaveBeenCalled();
+  });
+
+  it('handles /model to show current model (none set)', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/model')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('system default'),
+    );
+  });
+
+  it('handles /model to show current model (saved)', async () => {
+    const deps = makeDeps({ getChatModel: vi.fn().mockReturnValue('gemma') });
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/model')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('@gemma'),
+    );
+  });
+
+  it('handles /model default', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/model default')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.setChatModel).toHaveBeenCalledWith('chat@test', null);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('system default'),
+    );
+  });
+
+  it('handles /model <alias>', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/model llama3')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.setChatModel).toHaveBeenCalledWith('chat@test', 'llama3');
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('@llama3'),
+    );
+  });
+
+  it('handles /model <invalid-alias>', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/model unknown')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.setChatModel).not.toHaveBeenCalled();
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('Unknown model alias'),
+    );
   });
 
   it('handles authorized /compact in main group', async () => {
