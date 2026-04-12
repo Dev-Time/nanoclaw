@@ -158,7 +158,9 @@ describe('handleSessionCommand', () => {
   });
 
   it('handles authorized /models with no aliases configured', async () => {
-    const deps = makeDeps({ getAvailableModelAliases: vi.fn().mockReturnValue([]) });
+    const deps = makeDeps({
+      getAvailableModelAliases: vi.fn().mockReturnValue([]),
+    });
     const result = await handleSessionCommand({
       missedMessages: [makeMsg('/models')],
       isMainGroup: true,

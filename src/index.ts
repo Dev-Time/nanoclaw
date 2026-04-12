@@ -698,10 +698,7 @@ async function startMessageLoop(): Promise<void> {
                 aliasResult.strippedPrompt === '/compact' ||
                 aliasResult.strippedPrompt === '/models'
               ) {
-                loopCmdSlotKey = makeSlotKey(
-                  chatJid,
-                  aliasResult.config.alias,
-                );
+                loopCmdSlotKey = makeSlotKey(chatJid, aliasResult.config.alias);
                 return true;
               }
             }

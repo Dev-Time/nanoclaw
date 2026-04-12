@@ -24,7 +24,7 @@ import {
   BRAVE_API_KEY,
   PARALLEL_API_KEY,
   TIMEZONE,
-  } from './config.js';
+} from './config.js';
 
 import {
   resolveGroupFolderPath,
