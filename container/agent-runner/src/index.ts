@@ -689,6 +689,9 @@ async function main(): Promise<void> {
   const sdkEnv: Record<string, string | undefined> = {
     ...process.env,
     CLAUDE_CODE_AUTO_COMPACT_WINDOW: '165000',
+    API_TIMEOUT_MS: '600000', // 10 minutes
+    NO_PROXY: 'localhost,127.0.0.1,host.docker.internal',
+    no_proxy: 'localhost,127.0.0.1,host.docker.internal',
   };
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
