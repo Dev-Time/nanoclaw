@@ -83,7 +83,8 @@ let fakeProc: ReturnType<typeof createFakeProcess>;
 
 // Mock child_process.spawn
 vi.mock('child_process', async () => {
-  const actual = await vi.importActual<typeof import('child_process')>('child_process');
+  const actual =
+    await vi.importActual<typeof import('child_process')>('child_process');
   return {
     ...actual,
     spawn: vi.fn(() => fakeProc),
@@ -144,7 +145,7 @@ describe('container-runner intermediate thinking output', () => {
     // 2. Emit tool call block
     emitOutputMarker(fakeProc, {
       status: 'success',
-      result: '🛠️ *Tool Call: get_weather*', 
+      result: '🛠️ *Tool Call: get_weather*',
     });
     await vi.advanceTimersByTimeAsync(10);
 
@@ -174,9 +175,23 @@ describe('container-runner intermediate thinking output', () => {
 
     // Verify all markers were passed to onOutput
     expect(onOutput).toHaveBeenCalledTimes(4);
-    expect(onOutput).toHaveBeenNthCalledWith(1, expect.objectContaining({ result: '🤔 *Thinking*\nI should check the weather.' }));
-    expect(onOutput).toHaveBeenNthCalledWith(2, expect.objectContaining({ result: '🛠️ *Tool Call: get_weather*' }));
-    expect(onOutput).toHaveBeenNthCalledWith(3, expect.objectContaining({ result: 'The weather is sunny.' }));
-    expect(onOutput).toHaveBeenNthCalledWith(4, expect.objectContaining({ result: null }));
+    expect(onOutput).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        result: '🤔 *Thinking*\nI should check the weather.',
+      }),
+    );
+    expect(onOutput).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ result: '🛠️ *Tool Call: get_weather*' }),
+    );
+    expect(onOutput).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ result: 'The weather is sunny.' }),
+    );
+    expect(onOutput).toHaveBeenNthCalledWith(
+      4,
+      expect.objectContaining({ result: null }),
+    );
   });
 });
