@@ -23,6 +23,7 @@ import {
   SEATS_AERO_LOG_DIR,
   BRAVE_API_KEY,
   PARALLEL_API_KEY,
+  STREAMING_PROXY_ENABLED_HOSTS,
   TIMEZONE,
 } from './config.js';
 
@@ -336,6 +337,11 @@ async function buildContainerArgs(
   // Forward Parallel AI API key if set
   if (PARALLEL_API_KEY) {
     args.push('-e', `PARALLEL_API_KEY=${PARALLEL_API_KEY}`);
+  }
+
+  // Forward streaming proxy configuration
+  if (STREAMING_PROXY_ENABLED_HOSTS) {
+    args.push('-e', `STREAMING_PROXY_ENABLED_HOSTS=${STREAMING_PROXY_ENABLED_HOSTS}`);
   }
 
   // Forward Seats.Aero LOG_DIR and DATA_DIR to the MOUNTED paths inside the container

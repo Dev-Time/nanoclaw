@@ -16,6 +16,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
+import https from 'https';
 import { execFile } from 'child_process';
 import {
   query,
@@ -696,6 +698,202 @@ async function runScript(script: string): Promise<ScriptResult | null> {
   });
 }
 
+/**
+ * Start a local proxy that intercepts non-streaming completion requests,
+ * forces streaming upstream to prevent timeouts, and buffers the result
+ * into a single non-streaming response for the SDK.
+ */
+async function startStreamingProxy(upstreamUrl: string, port: number): Promise<void> {
+  const url = new URL(upstreamUrl);
+  const upstreamHost = url.hostname;
+  const upstreamPort = url.port || (url.protocol === 'https:' ? '443' : '80');
+  const protocol = url.protocol === 'https:' ? 'https' : 'http';
+  const client = protocol === 'https' ? https : http;
+
+  const server = http.createServer(async (req, res) => {
+    log(`[proxy] ${req.method} ${req.url}`);
+
+    if (req.method !== 'POST' || !req.url || (!req.url.includes('/chat/completions') && !req.url.includes('/api/generate') && !req.url.includes('/api/chat'))) {
+      // Forward everything else as-is
+      forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl);
+      return;
+    }
+
+    // Intercept completion requests
+    let bodyData = '';
+    req.on('data', chunk => { bodyData += chunk; });
+    req.on('end', async () => {
+      let body: any;
+      try {
+        body = JSON.parse(bodyData);
+      } catch (err) {
+        // Not JSON, just forward
+        forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl, bodyData);
+        return;
+      }
+
+      // If already streaming, just forward
+      if (body.stream === true) {
+        forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl, bodyData);
+        return;
+      }
+
+      // Force streaming
+      log(`[proxy] Forcing stream: true for ${req.url}`);
+      body.stream = true;
+      const modifiedBody = JSON.stringify(body);
+
+      const upstreamReq = client.request({
+        hostname: upstreamHost,
+        port: parseInt(upstreamPort),
+        path: req.url,
+        method: 'POST',
+        headers: {
+          ...req.headers,
+          'host': upstreamHost,
+          'content-length': Buffer.byteLength(modifiedBody),
+          'accept': 'text/event-stream, application/x-ndjson',
+        }
+      }, (upstreamRes) => {
+        const contentType = upstreamRes.headers['content-type'] || '';
+        let fullContent = '';
+        let lastResponse: any = null;
+
+        upstreamRes.on('data', (chunk) => {
+          const text = chunk.toString();
+          let tokensCountBefore = fullContent.split(/\s+/).length;
+          
+          if (contentType.includes('text/event-stream')) {
+            // OpenAI SSE format
+            const lines = text.split('\n');
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+                try {
+                  const json = JSON.parse(data);
+                  const content = json.choices?.[0]?.delta?.content || '';
+                  fullContent += content;
+                  lastResponse = json;
+                } catch {}
+              }
+            }
+          } else {
+            // Assume NDJSON (Ollama native)
+            const lines = text.split('\n');
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const json = JSON.parse(line);
+                fullContent += json.message?.content || json.response || '';
+                lastResponse = json;
+              } catch {}
+            }
+          }
+
+          let tokensCountAfter = fullContent.split(/\s+/).length;
+          if (Math.floor(tokensCountAfter / 50) > Math.floor(tokensCountBefore / 50)) {
+            log(`[proxy] Buffering progress: ~${tokensCountAfter} words received...`);
+          }
+        });
+
+        upstreamRes.on('end', () => {
+          if (!lastResponse) {
+            res.writeHead(upstreamRes.statusCode || 500);
+            res.end('Upstream error or empty response');
+            return;
+          }
+
+          // Build a single non-streaming response
+          let finalResponse: any;
+          if (req.url?.includes('/v1/chat/completions')) {
+            finalResponse = {
+              ...lastResponse,
+              choices: [{
+                ...lastResponse.choices?.[0],
+                message: {
+                  role: 'assistant',
+                  content: fullContent,
+                },
+                delta: undefined,
+                finish_reason: lastResponse.choices?.[0]?.finish_reason || 'stop',
+              }],
+              object: 'chat.completion',
+            };
+          } else {
+            // Ollama native
+            finalResponse = {
+              ...lastResponse,
+              response: fullContent,
+              message: lastResponse.message ? { ...lastResponse.message, content: fullContent } : undefined,
+              done: true,
+            };
+          }
+
+          const responseBody = JSON.stringify(finalResponse);
+          res.writeHead(200, {
+            'content-type': 'application/json',
+            'content-length': Buffer.byteLength(responseBody),
+          });
+          res.end(responseBody);
+        });
+      });
+
+      upstreamReq.on('error', (err) => {
+        log(`[proxy] Upstream request error: ${err.message}`);
+        res.writeHead(500);
+        res.end(`Proxy error: ${err.message}`);
+      });
+
+      upstreamReq.write(modifiedBody);
+      upstreamReq.end();
+    });
+  });
+
+  return new Promise((resolve, reject) => {
+    server.listen(port, '127.0.0.1', () => {
+      log(`[proxy] Streaming proxy listening on 127.0.0.1:${port}`);
+      resolve();
+    });
+    server.on('error', reject);
+  });
+}
+
+/**
+ * Transparently forward a request to the upstream server.
+ */
+function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, protocol: string, host: string, port: string, baseUrl: string, body?: string) {
+  const client = protocol === 'https' ? https : http;
+  const options = {
+    hostname: host,
+    port: parseInt(port),
+    path: req.url,
+    method: req.method,
+    headers: {
+      ...req.headers,
+      'host': host,
+    },
+  };
+
+  const upstreamReq = client.request(options, (upstreamRes) => {
+    res.writeHead(upstreamRes.statusCode || 200, upstreamRes.headers);
+    upstreamRes.pipe(res);
+  });
+
+  upstreamReq.on('error', (err) => {
+    log(`[proxy] Forward error: ${err.message}`);
+    res.writeHead(500);
+    res.end(`Proxy forward error: ${err.message}`);
+  });
+
+  if (body) {
+    upstreamReq.write(body);
+    upstreamReq.end();
+  } else {
+    req.pipe(upstreamReq);
+  }
+}
+
 async function main(): Promise<void> {
   let containerInput: ContainerInput;
 
@@ -727,6 +925,24 @@ async function main(): Promise<void> {
     NO_PROXY: 'localhost,127.0.0.1,host.docker.internal',
     no_proxy: 'localhost,127.0.0.1,host.docker.internal',
   };
+
+  // Start streaming proxy if enabled for this host
+  const originalBaseUrl = process.env.ANTHROPIC_BASE_URL;
+  const proxyEnabledHosts = (process.env.STREAMING_PROXY_ENABLED_HOSTS || '').split(',').map(h => h.trim()).filter(Boolean);
+  
+  if (originalBaseUrl && proxyEnabledHosts.length > 0) {
+    const isEnabled = proxyEnabledHosts.some(h => originalBaseUrl.includes(h));
+    if (isEnabled) {
+      log(`[proxy] Streaming proxy enabled for host: ${originalBaseUrl}`);
+      try {
+        const proxyPort = 11435;
+        await startStreamingProxy(originalBaseUrl, proxyPort);
+        sdkEnv.ANTHROPIC_BASE_URL = `http://localhost:${proxyPort}`;
+      } catch (err) {
+        log(`[proxy] Failed to start streaming proxy: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
 
   const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const mcpServerPath = path.join(__dirname, 'ipc-mcp-stdio.js');

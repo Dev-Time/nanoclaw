@@ -18,6 +18,7 @@ const envConfig = readEnvFile([
   'SEATS_AERO_DATA_DIR',
   'BRAVE_API_KEY',
   'PARALLEL_API_KEY',
+  'STREAMING_PROXY_ENABLED_HOSTS',
 ]);
 
 export const ASSISTANT_NAME =
@@ -27,6 +28,10 @@ export const ASSISTANT_HAS_OWN_NUMBER =
     envConfig.ASSISTANT_HAS_OWN_NUMBER) === 'true';
 export const OLLAMA_ADMIN_TOOLS =
   (process.env.OLLAMA_ADMIN_TOOLS || envConfig.OLLAMA_ADMIN_TOOLS) === 'true';
+export const STREAMING_PROXY_ENABLED_HOSTS =
+  process.env.STREAMING_PROXY_ENABLED_HOSTS ||
+  envConfig.STREAMING_PROXY_ENABLED_HOSTS ||
+  'ollama,host.docker.internal';
 export const POLL_INTERVAL = 2000;
 export const SCHEDULER_POLL_INTERVAL = 60000;
 
