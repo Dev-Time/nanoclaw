@@ -24,7 +24,12 @@ export function extractSessionCommand(
     text = text.replace(triggerPattern, '').trim();
   }
 
-  if (text === '/compact' || text === '/models' || text === '/model' || text.startsWith('/model ')) {
+  if (
+    text === '/compact' ||
+    text === '/models' ||
+    text === '/model' ||
+    text.startsWith('/model ')
+  ) {
     return text;
   }
   return null;
@@ -148,19 +153,24 @@ export async function handleSessionCommand(opts: {
     } else if (args.toLowerCase() === 'default') {
       // Revert to default
       deps.setChatModel(deps.chatJid, null);
-      await deps.sendMessage('Reverted to the system default model for this chat.');
+      await deps.sendMessage(
+        'Reverted to the system default model for this chat.',
+      );
     } else {
       // Set to alias
       const normalizedAlias = args.startsWith('@') ? args.slice(1) : args;
-      const found = aliases.find((a) => a.toLowerCase() === normalizedAlias.toLowerCase());
+      const found = aliases.find(
+        (a) => a.toLowerCase() === normalizedAlias.toLowerCase(),
+      );
 
       if (found) {
         deps.setChatModel(deps.chatJid, found);
         await deps.sendMessage(`Default model for this chat set to: @${found}`);
       } else {
-        const errorMsg = aliases.length > 0
-          ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
-          : 'No model aliases configured.';
+        const errorMsg =
+          aliases.length > 0
+            ? `Unknown model alias. Available: ${aliases.map((a) => '@' + a).join(', ')}`
+            : 'No model aliases configured.';
         await deps.sendMessage(errorMsg);
       }
     }

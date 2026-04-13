@@ -341,7 +341,10 @@ async function buildContainerArgs(
 
   // Forward streaming proxy configuration
   if (STREAMING_PROXY_ENABLED_HOSTS) {
-    args.push('-e', `STREAMING_PROXY_ENABLED_HOSTS=${STREAMING_PROXY_ENABLED_HOSTS}`);
+    args.push(
+      '-e',
+      `STREAMING_PROXY_ENABLED_HOSTS=${STREAMING_PROXY_ENABLED_HOSTS}`,
+    );
   }
 
   // Forward Seats.Aero LOG_DIR and DATA_DIR to the MOUNTED paths inside the container

@@ -59,7 +59,7 @@ npm test
 
 ## Development
 
-Run commands directly—don't tell the user to run them.
+Run commands directly—don't tell the user to run them. Always check that Node.js version 22 is being used on startup; if not, use `uv` to switch to Node 22.
 
 ```bash
 npm run dev          # Run with hot reload
