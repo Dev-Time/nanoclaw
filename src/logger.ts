@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 const LEVELS = { debug: 20, info: 30, warn: 40, error: 50, fatal: 60 } as const;
 type Level = keyof typeof LEVELS;
 
@@ -13,8 +16,27 @@ const MSG_COLOR = '\x1b[36m';
 const RESET = '\x1b[39m';
 const FULL_RESET = '\x1b[0m';
 
-const threshold =
-  LEVELS[(process.env.LOG_LEVEL as Level) || 'info'] ?? LEVELS.info;
+// Simple .env parser to avoid circular dependency with env.ts
+function getEnvLogLevel(): Level | undefined {
+  if (process.env.LOG_LEVEL) return process.env.LOG_LEVEL as Level;
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('LOG_LEVEL=')) {
+          return trimmed.split('=')[1].trim() as Level;
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+const threshold = LEVELS[getEnvLogLevel() || 'info'] ?? LEVELS.info;
 
 function formatErr(err: unknown): string {
   if (err instanceof Error) {

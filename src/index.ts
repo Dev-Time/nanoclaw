@@ -265,7 +265,38 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
 
   if (missedMessages.length === 0) return true;
 
-  // --- Session command interception (before trigger check) ---
+  // --- Slot Routing check ---
+  // Skip processing if the message is clearly intended for a different agent slot.
+  // For main groups, this prevents multiple slots (aliases) from processing the same untagged message.
+  const lastUserMsg = [...missedMessages]
+    .reverse()
+    .find((m) => !m.is_from_me);
+
+  if (isMainGroup && lastUserMsg) {
+    const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
+    if (alias && alias !== 'unknown-alias') {
+      if (alias.config.alias !== modelKey) {
+        logger.debug(
+          { group: group.name, slotKey, alias: alias.config.alias },
+          'Skipping slot: message intended for another alias',
+        );
+        return true;
+      }
+    } else {
+      // Message has NO explicit alias. It's intended for the default agent,
+      // which could be a saved alias or the system default (undefined).
+      const savedAlias = getChatModel(chatJid) || undefined;
+      if (modelKey !== savedAlias) {
+        logger.debug(
+          { group: group.name, slotKey, savedAlias },
+          'Skipping slot: message without alias (not intended for this slot)',
+        );
+        return true;
+      }
+    }
+  }
+
+  // --- Session command interception ---
   const cmdResult = await handleSessionCommand({
     missedMessages,
     isMainGroup,
@@ -328,37 +359,12 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
     }
     if (!hasTrigger) return true;
   } else if (isMainGroup) {
-    // For main groups, we only trigger if there is at least one new user message.
+    // For main groups, we already performed the alias check above.
+    // Just ensure there's at least one user message to trigger the agent.
     const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
     if (!hasUserMessage) return true;
-
-    // Skip processing if the message is clearly intended for a different agent.
-    // If it has an alias, and we are not that alias, skip.
-    // If it has NO alias, and we ARE an alias, skip (it's for the default agent).
-    const lastUserMsg = [...missedMessages]
-      .reverse()
-      .find((m) => !m.is_from_me);
-    if (lastUserMsg) {
-      const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
-      if (alias && alias !== 'unknown-alias') {
-        if (alias.config.alias !== modelKey) {
-          logger.debug(
-            { group: group.name, slotKey, alias: alias.config.alias },
-            'Skipping message intended for another alias',
-          );
-          return true;
-        }
-      } else if (modelKey) {
-        // We are an alias slot, but the message has no alias (or is unknown).
-        // It's intended for the default agent (or is a malformed alias).
-        logger.debug(
-          { group: group.name, slotKey },
-          'Skipping message without alias (intended for default agent)',
-        );
-        return true;
-      }
-    }
   }
+
 
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
   // Alias detection and stripping already happened before enqueue, but we re-fetch

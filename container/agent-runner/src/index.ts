@@ -698,6 +698,9 @@ async function runScript(script: string): Promise<ScriptResult | null> {
   });
 }
 
+const keepAliveAgent = new http.Agent({ keepAlive: true, timeout: 600000 });
+const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, timeout: 600000 });
+
 /**
  * Start a local proxy that intercepts non-streaming completion requests,
  * forces streaming upstream to prevent timeouts, and buffers the result
@@ -709,11 +712,12 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
   const upstreamPort = url.port || (url.protocol === 'https:' ? '443' : '80');
   const protocol = url.protocol === 'https:' ? 'https' : 'http';
   const client = protocol === 'https' ? https : http;
+  const agent = protocol === 'https' ? keepAliveHttpsAgent : keepAliveAgent;
 
   const server = http.createServer(async (req, res) => {
     log(`[proxy] ${req.method} ${req.url}`);
 
-    if (req.method !== 'POST' || !req.url || (!req.url.includes('/chat/completions') && !req.url.includes('/api/generate') && !req.url.includes('/api/chat'))) {
+    if (req.method !== 'POST' || !req.url || (!req.url.includes('/chat/completions') && !req.url.includes('/api/generate') && !req.url.includes('/api/chat') && !req.url.includes('/v1/messages'))) {
       // Forward everything else as-is
       forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl);
       return;
@@ -748,6 +752,8 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         port: parseInt(upstreamPort),
         path: req.url,
         method: 'POST',
+        agent: agent,
+        timeout: 600000,
         headers: {
           ...req.headers,
           'host': upstreamHost,
@@ -772,7 +778,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
                 if (data === '[DONE]') continue;
                 try {
                   const json = JSON.parse(data);
-                  const content = json.choices?.[0]?.delta?.content || '';
+                  const content = json.choices?.[0]?.delta?.content || (json.type === 'content_block_delta' ? json.delta?.text : '') || '';
                   fullContent += content;
                   lastResponse = json;
                 } catch {}
@@ -820,6 +826,14 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
               }],
               object: 'chat.completion',
             };
+          } else if (req.url?.includes('/v1/messages')) {
+            // Anthropic format
+            finalResponse = {
+              ...lastResponse,
+              type: 'message',
+              content: [{ type: 'text', text: fullContent }],
+              stop_reason: 'end_turn',
+            };
           } else {
             // Ollama native
             finalResponse = {
@@ -845,10 +859,20 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         res.end(`Proxy error: ${err.message}`);
       });
 
+      upstreamReq.setTimeout(600000, () => {
+        log('[proxy] Upstream request timeout');
+        upstreamReq.destroy();
+      });
+
       upstreamReq.write(modifiedBody);
       upstreamReq.end();
     });
   });
+
+  server.timeout = 600000;
+  server.headersTimeout = 600000;
+  server.requestTimeout = 600000;
+  server.keepAliveTimeout = 600000;
 
   return new Promise((resolve, reject) => {
     server.listen(port, '127.0.0.1', () => {
@@ -864,11 +888,14 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
  */
 function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, protocol: string, host: string, port: string, baseUrl: string, body?: string) {
   const client = protocol === 'https' ? https : http;
+  const agent = protocol === 'https' ? keepAliveHttpsAgent : keepAliveAgent;
   const options = {
     hostname: host,
     port: parseInt(port),
     path: req.url,
     method: req.method,
+    agent: agent,
+    timeout: 600000,
     headers: {
       ...req.headers,
       'host': host,
@@ -884,6 +911,11 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
     log(`[proxy] Forward error: ${err.message}`);
     res.writeHead(500);
     res.end(`Proxy forward error: ${err.message}`);
+  });
+
+  upstreamReq.setTimeout(600000, () => {
+    log('[proxy] Forward request timeout');
+    upstreamReq.destroy();
   });
 
   if (body) {
