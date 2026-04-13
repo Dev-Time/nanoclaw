@@ -268,9 +268,7 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
   // --- Slot Routing check ---
   // Skip processing if the message is clearly intended for a different agent slot.
   // For main groups, this prevents multiple slots (aliases) from processing the same untagged message.
-  const lastUserMsg = [...missedMessages]
-    .reverse()
-    .find((m) => !m.is_from_me);
+  const lastUserMsg = [...missedMessages].reverse().find((m) => !m.is_from_me);
 
   if (isMainGroup && lastUserMsg) {
     const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
@@ -364,7 +362,6 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
     const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
     if (!hasUserMessage) return true;
   }
-
 
   // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
   // Alias detection and stripping already happened before enqueue, but we re-fetch
@@ -699,9 +696,16 @@ async function startMessageLoop(): Promise<void> {
               getTriggerPattern(group.trigger),
             );
             if (defaultCmd !== null) {
-              if (defaultCmd === '/compact' || defaultCmd === '/models' || defaultCmd === '/model' || defaultCmd.startsWith('/model ')) {
+              if (
+                defaultCmd === '/compact' ||
+                defaultCmd === '/models' ||
+                defaultCmd === '/model' ||
+                defaultCmd.startsWith('/model ')
+              ) {
                 const savedAlias = getChatModel(chatJid);
-                loopCmdSlotKey = savedAlias ? makeSlotKey(chatJid, savedAlias) : chatJid;
+                loopCmdSlotKey = savedAlias
+                  ? makeSlotKey(chatJid, savedAlias)
+                  : chatJid;
                 return true;
               }
             }

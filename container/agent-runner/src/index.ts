@@ -953,7 +953,7 @@ async function main(): Promise<void> {
     ...process.env,
     CLAUDE_CODE_AUTO_COMPACT: '1',
     CLAUDE_CODE_AUTO_COMPACT_WINDOW: '100000',
-    API_TIMEOUT_MS: '600000', // 10 minutes
+    API_TIMEOUT_MS: '1200000', // 20 minutes
     NO_PROXY: 'localhost,127.0.0.1,host.docker.internal',
     no_proxy: 'localhost,127.0.0.1,host.docker.internal',
   };
