@@ -698,8 +698,8 @@ async function runScript(script: string): Promise<ScriptResult | null> {
   });
 }
 
-const keepAliveAgent = new http.Agent({ keepAlive: true, timeout: 600000 });
-const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, timeout: 600000 });
+const keepAliveAgent = new http.Agent({ keepAlive: true, timeout: 1200000 });
+const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, timeout: 1200000 });
 
 /**
  * Start a local proxy that intercepts non-streaming completion requests,
@@ -718,6 +718,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
     log(`[proxy] ${req.method} ${req.url}`);
 
     if (req.method !== 'POST' || !req.url || (!req.url.includes('/chat/completions') && !req.url.includes('/api/generate') && !req.url.includes('/api/chat') && !req.url.includes('/v1/messages'))) {
+      log(`[proxy] Passing through (unsupported method or URL): ${req.method} ${req.url}`);
       // Forward everything else as-is
       forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl);
       return;
@@ -731,6 +732,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
       try {
         body = JSON.parse(bodyData);
       } catch (err) {
+        log(`[proxy] Passing through (non-JSON body): ${req.method} ${req.url}`);
         // Not JSON, just forward
         forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl, bodyData);
         return;
@@ -738,6 +740,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
 
       // If already streaming, just forward
       if (body.stream === true) {
+        log(`[proxy] Already streaming: ${req.url}`);
         forwardRequest(req, res, protocol, upstreamHost, upstreamPort, upstreamUrl, bodyData);
         return;
       }
@@ -753,7 +756,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         path: req.url,
         method: 'POST',
         agent: agent,
-        timeout: 600000,
+        timeout: 1200000,
         headers: {
           ...req.headers,
           'host': upstreamHost,
@@ -761,6 +764,9 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
           'accept': 'text/event-stream, application/x-ndjson',
         }
       }, (upstreamRes) => {
+        if (upstreamRes.statusCode && upstreamRes.statusCode >= 400) {
+          log(`[proxy] Upstream error status: ${upstreamRes.statusCode} for ${req.url}`);
+        }
         const contentType = upstreamRes.headers['content-type'] || '';
         let fullContent = '';
         let lastResponse: any = null;
@@ -805,6 +811,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
 
         upstreamRes.on('end', () => {
           if (!lastResponse) {
+            log(`[proxy] Error: Upstream returned no data for ${req.url}`);
             res.writeHead(upstreamRes.statusCode || 500);
             res.end('Upstream error or empty response');
             return;
@@ -845,6 +852,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
           }
 
           const responseBody = JSON.stringify(finalResponse);
+          log(`[proxy] Buffered response complete for ${req.url} (${Buffer.byteLength(responseBody)} bytes)`);
           res.writeHead(200, {
             'content-type': 'application/json',
             'content-length': Buffer.byteLength(responseBody),
@@ -859,7 +867,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         res.end(`Proxy error: ${err.message}`);
       });
 
-      upstreamReq.setTimeout(600000, () => {
+      upstreamReq.setTimeout(1200000, () => {
         log('[proxy] Upstream request timeout');
         upstreamReq.destroy();
       });
@@ -869,10 +877,10 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
     });
   });
 
-  server.timeout = 600000;
-  server.headersTimeout = 600000;
-  server.requestTimeout = 600000;
-  server.keepAliveTimeout = 600000;
+  server.timeout = 1200000;
+  server.headersTimeout = 1200000;
+  server.requestTimeout = 1200000;
+  server.keepAliveTimeout = 1200000;
 
   return new Promise((resolve, reject) => {
     server.listen(port, '127.0.0.1', () => {
@@ -895,7 +903,7 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
     path: req.url,
     method: req.method,
     agent: agent,
-    timeout: 600000,
+    timeout: 1200000,
     headers: {
       ...req.headers,
       'host': host,
@@ -903,6 +911,7 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
   };
 
   const upstreamReq = client.request(options, (upstreamRes) => {
+    log(`[proxy] Forward response: ${upstreamRes.statusCode} for ${req.url}`);
     res.writeHead(upstreamRes.statusCode || 200, upstreamRes.headers);
     upstreamRes.pipe(res);
   });
@@ -913,7 +922,7 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
     res.end(`Proxy forward error: ${err.message}`);
   });
 
-  upstreamReq.setTimeout(600000, () => {
+  upstreamReq.setTimeout(1200000, () => {
     log('[proxy] Forward request timeout');
     upstreamReq.destroy();
   });

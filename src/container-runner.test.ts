@@ -24,6 +24,7 @@ vi.mock('./config.js', () => ({
   SEATS_AERO_DATA_DIR: undefined,
   BRAVE_API_KEY: undefined,
   PARALLEL_API_KEY: undefined,
+  STREAMING_PROXY_ENABLED_HOSTS: undefined,
   TIMEZONE: 'America/Los_Angeles',
 }));
 
