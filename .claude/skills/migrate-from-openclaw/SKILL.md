@@ -199,9 +199,9 @@ Then write the JSON file. If no allowlists were configured, skip this.
 
 ### Container Timeout
 
-Check `agents.defaults.timeoutSeconds` in the config. This is maximum total agent runtime (wall-clock). NanoClaw's equivalent is `CONTAINER_TIMEOUT` (env var, default 30 min), also configurable per-group via `containerConfig.timeout`. Note: NanoClaw also has a separate `IDLE_TIMEOUT` (max time without output) which resets on activity — OpenClaw has no equivalent.
+Check `agents.defaults.timeoutSeconds` in the config. This is maximum total agent runtime (wall-clock). NanoClaw's equivalent is `CONTAINER_TIMEOUT` (env var, default 1 hour), also configurable per-group via `containerConfig.timeout`. Note: NanoClaw also has a separate `IDLE_TIMEOUT` (max time without output) which resets on activity — OpenClaw has no equivalent.
 
-If the OpenClaw value differs significantly from 30 minutes, note it for the user. They can set `CONTAINER_TIMEOUT=<ms>` in `.env` after setup.
+If the OpenClaw value differs significantly from 1 hour, note it for the user. They can set `CONTAINER_TIMEOUT=<ms>` in `.env` after setup.
 
 ## Phase 3: Identity and Memory
 

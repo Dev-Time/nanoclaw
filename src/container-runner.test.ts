@@ -13,10 +13,10 @@ vi.mock('./config.js', () => ({
   CLAUDE_CODE_MODEL: 'claude-3-sonnet-20240229',
   CONTAINER_IMAGE: 'nanoclaw-agent:latest',
   CONTAINER_MAX_OUTPUT_SIZE: 10485760,
-  CONTAINER_TIMEOUT: 1800000, // 30min
+  CONTAINER_TIMEOUT: 3600000, // 1 hour
   DATA_DIR: '/tmp/nanoclaw-test-data',
   GROUPS_DIR: '/tmp/nanoclaw-test-groups',
-  IDLE_TIMEOUT: 1800000, // 30min
+  IDLE_TIMEOUT: 3300000, // 55min
   OLLAMA_ADMIN_TOOLS: false,
   ONECLI_URL: 'http://localhost:10254',
   SEATS_AERO_API_KEY: undefined,
@@ -174,8 +174,8 @@ describe('container-runner timeout behavior', () => {
     // Let output processing settle
     await vi.advanceTimersByTimeAsync(10);
 
-    // Fire the hard timeout (IDLE_TIMEOUT + 30s = 1830000ms)
-    await vi.advanceTimersByTimeAsync(1830000);
+    // Fire the timeout
+    await vi.advanceTimersByTimeAsync(3630000);
 
     // Emit close event (as if container was stopped by the timeout)
     fakeProc.emit('close', 137);
@@ -200,8 +200,8 @@ describe('container-runner timeout behavior', () => {
       onOutput,
     );
 
-    // No output emitted — fire the hard timeout
-    await vi.advanceTimersByTimeAsync(1830000);
+    // No output emitted — fire the timeout
+    await vi.advanceTimersByTimeAsync(3630000);
 
     // Emit close event
     fakeProc.emit('close', 137);

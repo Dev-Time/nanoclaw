@@ -167,7 +167,7 @@ async function runTask(
     : undefined;
 
   // After the task produces a result, close the container promptly.
-  // Tasks are single-turn — no need to wait IDLE_TIMEOUT (30 min) for the
+  // Tasks are single-turn — no need to wait IDLE_TIMEOUT (55 min) for the
   // query loop to time out. A short delay handles any final MCP calls.
   const TASK_CLOSE_DELAY_MS = 10000;
   let closeTimer: ReturnType<typeof setTimeout> | null = null;
