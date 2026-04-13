@@ -32,6 +32,7 @@ describe('processGroupMessages loop and routing', () => {
         folder: 'test',
         trigger: '@Andy',
         isMain: true,
+        added_at: new Date().toISOString(),
       },
     });
     vi.mocked(router.findChannel).mockReturnValue({
@@ -39,20 +40,22 @@ describe('processGroupMessages loop and routing', () => {
       connect: vi.fn(),
       disconnect: vi.fn(),
       sendMessage: vi.fn(),
+      isConnected: vi.fn().mockReturnValue(true),
+      ownsJid: vi.fn().mockReturnValue(true),
       setTyping: vi.fn().mockResolvedValue(undefined),
     });
   });
 
   it('processes multiple session commands followed by a regular message', async () => {
     const msgs = [
-      { id: '1', chat_jid: chatJid, content: '/model gemma', timestamp: '100', is_from_me: false },
-      { id: '2', chat_jid: chatJid, content: '/model llama3', timestamp: '101', is_from_me: false },
-      { id: '3', chat_jid: chatJid, content: 'Hello', timestamp: '102', is_from_me: false },
+      { id: '1', chat_jid: chatJid, content: '/model gemma', timestamp: '100', is_from_me: false, sender: 'user1', sender_name: 'User 1' },
+      { id: '2', chat_jid: chatJid, content: '/model llama3', timestamp: '101', is_from_me: false, sender: 'user1', sender_name: 'User 1' },
+      { id: '3', chat_jid: chatJid, content: 'Hello', timestamp: '102', is_from_me: false, sender: 'user1', sender_name: 'User 1' },
     ];
 
     let cursor = '0';
     vi.mocked(db.getMessagesSince).mockImplementation((jid, ts) => {
-      return msgs.filter(m => m.timestamp > ts);
+      return msgs.filter(m => m.timestamp > ts) as any;
     });
     vi.mocked(db.getChatModel).mockReturnValue(undefined);
 
