@@ -25,6 +25,10 @@ vi.mock('./config.js', () => ({
   BRAVE_API_KEY: undefined,
   PARALLEL_API_KEY: undefined,
   STREAMING_PROXY_ENABLED_HOSTS: undefined,
+  API_TIMEOUT_MS: 1200000,
+  COMPACT_WINDOW: 100000,
+  MAX_RETRIES: 5,
+  BASE_RETRY_MS: 5000,
   TIMEZONE: 'America/Los_Angeles',
 }));
 

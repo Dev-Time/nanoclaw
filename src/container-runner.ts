@@ -21,6 +21,8 @@ import {
   SEATS_AERO_API_KEY,
   SEATS_AERO_DATA_DIR,
   SEATS_AERO_LOG_DIR,
+  API_TIMEOUT_MS,
+  COMPACT_WINDOW,
   BRAVE_API_KEY,
   PARALLEL_API_KEY,
   STREAMING_PROXY_ENABLED_HOSTS,
@@ -350,6 +352,16 @@ async function buildContainerArgs(
   // Forward Seats.Aero LOG_DIR and DATA_DIR to the MOUNTED paths inside the container
   args.push('-e', 'SEATS_AERO_LOG_DIR=/home/node/.claude/seats-aero-logs');
   args.push('-e', 'SEATS_AERO_DATA_DIR=/home/node/.claude/seats-aero-data');
+
+  // Forward API timeout
+  if (API_TIMEOUT_MS) {
+    args.push('-e', `API_TIMEOUT_MS=${API_TIMEOUT_MS}`);
+  }
+
+  // Forward compaction window
+  if (COMPACT_WINDOW) {
+    args.push('-e', `COMPACT_WINDOW=${COMPACT_WINDOW}`);
+  }
 
   // OneCLI gateway handles credential injection — containers never see real secrets.
   // The gateway intercepts HTTPS traffic and injects API keys or OAuth tokens.

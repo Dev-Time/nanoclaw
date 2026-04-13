@@ -698,8 +698,10 @@ async function runScript(script: string): Promise<ScriptResult | null> {
   });
 }
 
-const keepAliveAgent = new http.Agent({ keepAlive: true, timeout: 1200000 });
-const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, timeout: 1200000 });
+const apiTimeoutMs = parseInt(process.env.API_TIMEOUT_MS || '1200000', 10);
+
+const keepAliveAgent = new http.Agent({ keepAlive: true, timeout: apiTimeoutMs });
+const keepAliveHttpsAgent = new https.Agent({ keepAlive: true, timeout: apiTimeoutMs });
 
 /**
  * Start a local proxy that intercepts non-streaming completion requests,
@@ -756,7 +758,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         path: req.url,
         method: 'POST',
         agent: agent,
-        timeout: 1200000,
+        timeout: apiTimeoutMs,
         headers: {
           ...req.headers,
           'host': upstreamHost,
@@ -867,7 +869,7 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         res.end(`Proxy error: ${err.message}`);
       });
 
-      upstreamReq.setTimeout(1200000, () => {
+      upstreamReq.setTimeout(apiTimeoutMs, () => {
         log('[proxy] Upstream request timeout');
         upstreamReq.destroy();
       });
@@ -877,10 +879,10 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
     });
   });
 
-  server.timeout = 1200000;
-  server.headersTimeout = 1200000;
-  server.requestTimeout = 1200000;
-  server.keepAliveTimeout = 1200000;
+  server.timeout = apiTimeoutMs;
+  server.headersTimeout = apiTimeoutMs;
+  server.requestTimeout = apiTimeoutMs;
+  server.keepAliveTimeout = apiTimeoutMs;
 
   return new Promise((resolve, reject) => {
     server.listen(port, '127.0.0.1', () => {
@@ -903,7 +905,7 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
     path: req.url,
     method: req.method,
     agent: agent,
-    timeout: 1200000,
+    timeout: apiTimeoutMs,
     headers: {
       ...req.headers,
       'host': host,
@@ -922,7 +924,7 @@ function forwardRequest(req: http.IncomingMessage, res: http.ServerResponse, pro
     res.end(`Proxy forward error: ${err.message}`);
   });
 
-  upstreamReq.setTimeout(1200000, () => {
+  upstreamReq.setTimeout(apiTimeoutMs, () => {
     log('[proxy] Forward request timeout');
     upstreamReq.destroy();
   });
@@ -961,8 +963,8 @@ async function main(): Promise<void> {
   const sdkEnv: Record<string, string | undefined> = {
     ...process.env,
     CLAUDE_CODE_AUTO_COMPACT: '1',
-    CLAUDE_CODE_AUTO_COMPACT_WINDOW: '100000',
-    API_TIMEOUT_MS: '1200000', // 20 minutes
+    CLAUDE_CODE_AUTO_COMPACT_WINDOW: process.env.COMPACT_WINDOW || '100000',
+    API_TIMEOUT_MS: String(apiTimeoutMs),
     NO_PROXY: 'localhost,127.0.0.1,host.docker.internal',
     no_proxy: 'localhost,127.0.0.1,host.docker.internal',
   };

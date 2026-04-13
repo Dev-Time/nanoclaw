@@ -19,6 +19,16 @@ const envConfig = readEnvFile([
   'BRAVE_API_KEY',
   'PARALLEL_API_KEY',
   'STREAMING_PROXY_ENABLED_HOSTS',
+  'POLL_INTERVAL',
+  'SCHEDULER_POLL_INTERVAL',
+  'IPC_POLL_INTERVAL',
+  'CONTAINER_TIMEOUT',
+  'IDLE_TIMEOUT',
+  'CONTAINER_MAX_OUTPUT_SIZE',
+  'API_TIMEOUT_MS',
+  'COMPACT_WINDOW',
+  'MAX_RETRIES',
+  'BASE_RETRY_MS',
 ]);
 
 export const ASSISTANT_NAME =
@@ -32,8 +42,16 @@ export const STREAMING_PROXY_ENABLED_HOSTS =
   process.env.STREAMING_PROXY_ENABLED_HOSTS ||
   envConfig.STREAMING_PROXY_ENABLED_HOSTS ||
   'ollama,host.docker.internal';
-export const POLL_INTERVAL = 2000;
-export const SCHEDULER_POLL_INTERVAL = 60000;
+export const POLL_INTERVAL = parseInt(
+  process.env.POLL_INTERVAL || envConfig.POLL_INTERVAL || '2000',
+  10,
+);
+export const SCHEDULER_POLL_INTERVAL = parseInt(
+  process.env.SCHEDULER_POLL_INTERVAL ||
+    envConfig.SCHEDULER_POLL_INTERVAL ||
+    '60000',
+  10,
+);
 
 // Absolute paths needed for container mounts
 const PROJECT_ROOT = process.cwd();
@@ -59,11 +77,13 @@ export const DATA_DIR = path.resolve(PROJECT_ROOT, 'data');
 export const CONTAINER_IMAGE =
   process.env.CONTAINER_IMAGE || 'nanoclaw-agent:latest';
 export const CONTAINER_TIMEOUT = parseInt(
-  process.env.CONTAINER_TIMEOUT || '1800000',
+  process.env.CONTAINER_TIMEOUT || envConfig.CONTAINER_TIMEOUT || '1800000',
   10,
 );
 export const CONTAINER_MAX_OUTPUT_SIZE = parseInt(
-  process.env.CONTAINER_MAX_OUTPUT_SIZE || '10485760',
+  process.env.CONTAINER_MAX_OUTPUT_SIZE ||
+    envConfig.CONTAINER_MAX_OUTPUT_SIZE ||
+    '10485760',
   10,
 ); // 10MB default
 export const ONECLI_URL = process.env.ONECLI_URL || envConfig.ONECLI_URL;
@@ -85,8 +105,30 @@ export const MAX_MESSAGES_PER_PROMPT = Math.max(
   1,
   parseInt(process.env.MAX_MESSAGES_PER_PROMPT || '10', 10) || 10,
 );
-export const IPC_POLL_INTERVAL = 1000;
-export const IDLE_TIMEOUT = parseInt(process.env.IDLE_TIMEOUT || '1800000', 10); // 30min default — how long to keep container alive after last result
+export const IPC_POLL_INTERVAL = parseInt(
+  process.env.IPC_POLL_INTERVAL || envConfig.IPC_POLL_INTERVAL || '1000',
+  10,
+);
+export const IDLE_TIMEOUT = parseInt(
+  process.env.IDLE_TIMEOUT || envConfig.IDLE_TIMEOUT || '1800000',
+  10,
+); // 30min default — how long to keep container alive after last result
+export const API_TIMEOUT_MS = parseInt(
+  process.env.API_TIMEOUT_MS || envConfig.API_TIMEOUT_MS || '1200000',
+  10,
+);
+export const COMPACT_WINDOW = parseInt(
+  process.env.COMPACT_WINDOW || envConfig.COMPACT_WINDOW || '100000',
+  10,
+);
+export const MAX_RETRIES = parseInt(
+  process.env.MAX_RETRIES || envConfig.MAX_RETRIES || '5',
+  10,
+);
+export const BASE_RETRY_MS = parseInt(
+  process.env.BASE_RETRY_MS || envConfig.BASE_RETRY_MS || '5000',
+  10,
+);
 export const MAX_CONCURRENT_CONTAINERS = Math.max(
   1,
   parseInt(process.env.MAX_CONCURRENT_CONTAINERS || '5', 10) || 5,
