@@ -11,6 +11,7 @@ Single Node.js process with skill-based channel system. Channels (WhatsApp, Tele
 | File | Purpose |
 |------|---------|
 | `src/index.ts` | Orchestrator: state, message loop, agent invocation |
+| `src/GEMINI.md` | Detailed context for orchestration logic and source code conventions |
 | `src/channels/registry.ts` | Channel registry (self-registration at startup) |
 | `src/ipc.ts` | IPC watcher and task processing |
 | `src/router.ts` | Message formatting and outbound routing |
@@ -59,7 +60,7 @@ npm test
 
 ## Development
 
-Run commands directly—don't tell the user to run them. Always check that Node.js version 22 is being used on startup; if not, use `uv` to switch to Node 22.
+Run commands directly—don't tell the user to run them. Always use Node.js version 22. If the current environment is using a different version (like v25), switch to v22 using `source ~/.nvm/nvm.sh && nvm use 22` before running tests or build commands to avoid native module compatibility issues (specifically with `better-sqlite3`).
 
 ```bash
 npm run dev          # Run with hot reload

@@ -239,11 +239,8 @@ export function _setRegisteredGroups(
   registeredGroups = groups;
 }
 
-/**
- * Process all pending messages for a group.
- * Called by the GroupQueue when it's this group's turn.
- */
-async function processGroupMessages(slotKey: string): Promise<boolean> {
+/** @internal */
+export async function processGroupMessages(slotKey: string): Promise<boolean> {
   const { chatJid, modelKey } = parseSlotKey(slotKey);
   const group = registeredGroups[chatJid];
   if (!group) return true;
@@ -256,221 +253,250 @@ async function processGroupMessages(slotKey: string): Promise<boolean> {
 
   const isMainGroup = group.isMain === true;
 
-  const missedMessages = getMessagesSince(
-    chatJid,
-    getOrRecoverCursor(slotKey),
-    ASSISTANT_NAME,
-    MAX_MESSAGES_PER_PROMPT,
-  );
+  // Capture the default model at the start of the run to ensure deterministic routing
+  // for all messages currently in the batch, even if a session command changes it mid-run.
+  const initialSavedAlias = getChatModel(chatJid) || undefined;
 
-  if (missedMessages.length === 0) return true;
-
-  // --- Slot Routing check ---
-  // Skip processing if the message is clearly intended for a different agent slot.
-  // For main groups, this prevents multiple slots (aliases) from processing the same untagged message.
-  const lastUserMsg = [...missedMessages].reverse().find((m) => !m.is_from_me);
-
-  if (isMainGroup && lastUserMsg) {
-    const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
-    if (alias && alias !== 'unknown-alias') {
-      if (alias.config.alias !== modelKey) {
-        logger.debug(
-          { group: group.name, slotKey, alias: alias.config.alias },
-          'Skipping slot: message intended for another alias',
-        );
-        return true;
-      }
-    } else {
-      // Message has NO explicit alias. It's intended for the default agent,
-      // which could be a saved alias or the system default (undefined).
-      const savedAlias = getChatModel(chatJid) || undefined;
-      if (modelKey !== savedAlias) {
-        logger.debug(
-          { group: group.name, slotKey, savedAlias },
-          'Skipping slot: message without alias (not intended for this slot)',
-        );
-        return true;
-      }
-    }
-  }
-
-  // --- Session command interception ---
-  const cmdResult = await handleSessionCommand({
-    missedMessages,
-    isMainGroup,
-    groupName: group.name,
-    triggerPattern: getTriggerPattern(group.trigger),
-    timezone: TIMEZONE,
-    deps: {
-      sendMessage: (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
-      setTyping: (typing) =>
-        channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
-      runAgent: (prompt, onOutput) =>
-        runAgent(group, prompt, chatJid, onOutput, modelKey),
-      closeStdin: () => queue.closeStdin(slotKey),
-      advanceCursor: (ts) => {
-        lastAgentTimestamp[slotKey] = ts;
-        saveState();
-      },
-      formatMessages,
-      canSenderInteract: (msg) => {
-        const hasTrigger = getTriggerPattern(group.trigger).test(
-          msg.content.trim(),
-        );
-        const reqTrigger = !isMainGroup && group.requiresTrigger !== false;
-        return (
-          isMainGroup ||
-          !reqTrigger ||
-          (hasTrigger &&
-            (msg.is_from_me ||
-              isTriggerAllowed(chatJid, msg.sender, loadSenderAllowlist())))
-        );
-      },
-      getAvailableModelAliases,
+  while (true) {
+    const missedMessages = getMessagesSince(
       chatJid,
-      getChatModel,
-      setChatModel,
-    },
-    modelKey,
-  });
-  if (cmdResult.handled) return cmdResult.success;
-  // --- End session command interception ---
-
-  // For non-main groups, check if trigger is required and present.
-  // A known model alias also acts as an implicit trigger.
-  // Only user messages (not bot messages) trigger the LLM to avoid feedback loops.
-  if (!isMainGroup && group.requiresTrigger !== false) {
-    const triggerPattern = getTriggerPattern(group.trigger);
-    const allowlistCfg = loadSenderAllowlist();
-    let hasTrigger = missedMessages.some(
-      (m) =>
-        !m.is_from_me &&
-        triggerPattern.test(m.content.trim()) &&
-        isTriggerAllowed(chatJid, m.sender, allowlistCfg),
+      getOrRecoverCursor(slotKey),
+      ASSISTANT_NAME,
+      MAX_MESSAGES_PER_PROMPT,
     );
-    if (!hasTrigger) {
-      hasTrigger = missedMessages.some((m) => {
-        if (m.is_from_me) return false;
-        const r = resolveModelAlias(m.content, group.trigger);
-        return r !== null && r !== 'unknown-alias';
-      });
-    }
-    if (!hasTrigger) return true;
-  } else if (isMainGroup) {
-    // For main groups, we already performed the alias check above.
-    // Just ensure there's at least one user message to trigger the agent.
-    const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
-    if (!hasUserMessage) return true;
-  }
 
-  // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
-  // Alias detection and stripping already happened before enqueue, but we re-fetch
-  // here, so we must re-strip to ensure the container doesn't see the trigger word.
-  const configs = loadModelConfigs();
-  const modelConfig = modelKey
-    ? configs.find((c) => c.alias === modelKey)
-    : undefined;
-  const effectiveOverride: ModelOverride | undefined = modelConfig
-    ? { baseUrl: modelConfig.baseUrl, model: modelConfig.model }
-    : undefined;
+    if (missedMessages.length === 0) return true;
 
-  if (modelConfig) {
-    const lastMsg = missedMessages[missedMessages.length - 1];
-    const r = resolveModelAlias(lastMsg.content, group.trigger);
-    if (r && r !== 'unknown-alias' && r.config.alias === modelKey) {
-      lastMsg.content = r.strippedPrompt;
-    }
-  }
+    // --- Slot Routing check ---
+    // Skip processing if the message is clearly intended for a different agent slot.
+    // For main groups, this prevents multiple slots (aliases) from processing the same untagged message.
+    const lastUserMsg = [...missedMessages].reverse().find((m) => !m.is_from_me);
 
-  const prompt = formatMessages(missedMessages, TIMEZONE);
-
-  // Advance cursor so the piping path in startMessageLoop won't re-fetch
-  // these messages. Save the old cursor so we can roll back on error.
-  const previousCursor = lastAgentTimestamp[slotKey] || '';
-  lastAgentTimestamp[slotKey] =
-    missedMessages[missedMessages.length - 1].timestamp;
-  saveState();
-
-  logger.info(
-    { group: group.name, messageCount: missedMessages.length },
-    'Processing messages',
-  );
-
-  // Track idle timer for closing stdin when agent is idle
-  let idleTimer: ReturnType<typeof setTimeout> | null = null;
-
-  const resetIdleTimer = () => {
-    if (idleTimer) clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => {
-      logger.debug(
-        { group: group.name },
-        'Idle timeout, closing container stdin',
-      );
-      queue.closeStdin(slotKey);
-    }, IDLE_TIMEOUT);
-  };
-
-  await channel.setTyping?.(chatJid, true);
-  let hadError = false;
-  let outputSentToUser = false;
-
-  const output = await runAgent(
-    group,
-    prompt,
-    chatJid,
-    async (result) => {
-      // Streaming output callback — called for each agent result
-      if (result.result) {
-        const raw =
-          typeof result.result === 'string'
-            ? result.result
-            : JSON.stringify(result.result);
-        const senderName = modelKey || ASSISTANT_NAME;
-        logger.info({ group: group.name }, `Agent output: ${raw.length} chars`);
-        if (raw.trim()) {
-          await sendMessageAndStore(chatJid, raw, senderName);
-          outputSentToUser = true;
+    if (isMainGroup && lastUserMsg) {
+      const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
+      if (alias && alias !== 'unknown-alias') {
+        if (alias.config.alias !== modelKey) {
+          logger.debug(
+            { group: group.name, slotKey, alias: alias.config.alias },
+            'Skipping slot: message intended for another alias',
+          );
+          return true;
         }
-        // Only reset idle timer on actual results, not session-update markers (result: null)
-        resetIdleTimer();
+      } else {
+        // Message has NO explicit alias. It's intended for the default agent,
+        // which could be a saved alias (captured at start of run) or the system default.
+        if (modelKey !== initialSavedAlias) {
+          logger.debug(
+            { group: group.name, slotKey, initialSavedAlias },
+            'Skipping slot: message without alias (not intended for this slot)',
+          );
+          return true;
+        }
+      }
+    }
+
+    // --- Session command interception ---
+    const currentSavedAlias = getChatModel(chatJid) || undefined;
+    const cmdResult = await handleSessionCommand({
+      missedMessages,
+      isMainGroup,
+      groupName: group.name,
+      triggerPattern: getTriggerPattern(group.trigger),
+      timezone: TIMEZONE,
+      deps: {
+        sendMessage: (text) =>
+          sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
+        setTyping: (typing) =>
+          channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
+        runAgent: (prompt, onOutput) =>
+          runAgent(group, prompt, chatJid, onOutput, modelKey),
+        closeStdin: () => queue.closeStdin(slotKey),
+        advanceCursor: (ts) => {
+          lastAgentTimestamp[slotKey] = ts;
+          saveState();
+        },
+        formatMessages,
+        canSenderInteract: (msg) => {
+          const hasTrigger = getTriggerPattern(group.trigger).test(
+            msg.content.trim(),
+          );
+          const reqTrigger = !isMainGroup && group.requiresTrigger !== false;
+          return (
+            isMainGroup ||
+            !reqTrigger ||
+            (hasTrigger &&
+              (msg.is_from_me ||
+                isTriggerAllowed(chatJid, msg.sender, loadSenderAllowlist())))
+          );
+        },
+        getAvailableModelAliases,
+        chatJid,
+        getChatModel,
+        setChatModel,
+      },
+      modelKey,
+    });
+
+    if (cmdResult.handled) {
+      if (!cmdResult.success) return false;
+
+      // If the command changed the default model, we MUST stop and re-enqueue
+      // for the new slots to ensure remaining messages are routed correctly.
+      const newSavedAlias = getChatModel(chatJid) || undefined;
+      if (newSavedAlias !== currentSavedAlias) {
+        logger.info(
+          { chatJid, old: currentSavedAlias, new: newSavedAlias },
+          'Default model changed, re-enqueuing affected slots',
+        );
+        queue.enqueueMessageCheck(chatJid);
+        if (newSavedAlias) {
+          queue.enqueueMessageCheck(makeSlotKey(chatJid, newSavedAlias));
+        }
+        return true;
       }
 
-      if (result.status === 'success') {
-        queue.notifyIdle(slotKey);
+      continue; // Check for more messages (could be more commands or regular messages)
+    }
+    // --- End session command interception ---
+
+    // For non-main groups, check if trigger is required and present.
+    // A known model alias also acts as an implicit trigger.
+    // Only user messages (not bot messages) trigger the LLM to avoid feedback loops.
+    if (!isMainGroup && group.requiresTrigger !== false) {
+      const triggerPattern = getTriggerPattern(group.trigger);
+      const allowlistCfg = loadSenderAllowlist();
+      let hasTrigger = missedMessages.some(
+        (m) =>
+          !m.is_from_me &&
+          triggerPattern.test(m.content.trim()) &&
+          isTriggerAllowed(chatJid, m.sender, allowlistCfg),
+      );
+      if (!hasTrigger) {
+        hasTrigger = missedMessages.some((m) => {
+          if (m.is_from_me) return false;
+          const r = resolveModelAlias(m.content, group.trigger);
+          return r !== null && r !== 'unknown-alias';
+        });
+      }
+      if (!hasTrigger) return true;
+    } else if (isMainGroup) {
+      // For main groups, we already performed the alias check above.
+      // Just ensure there's at least one user message to trigger the agent.
+      const hasUserMessage = missedMessages.some((m) => !m.is_from_me);
+      if (!hasUserMessage) return true;
+    }
+
+    // Derive the model override from the slot's modelKey (set by startMessageLoop routing).
+    // Alias detection and stripping already happened before enqueue, but we re-fetch
+    // here, so we must re-strip to ensure the container doesn't see the trigger word.
+    const configs = loadModelConfigs();
+    const modelConfig = modelKey
+      ? configs.find((c) => c.alias === modelKey)
+      : undefined;
+
+    if (modelConfig) {
+      const lastMsg = missedMessages[missedMessages.length - 1];
+      const r = resolveModelAlias(lastMsg.content, group.trigger);
+      if (r && r !== 'unknown-alias' && r.config.alias === modelKey) {
+        lastMsg.content = r.strippedPrompt;
+      }
+    }
+
+    const prompt = formatMessages(missedMessages, TIMEZONE);
+
+    // Advance cursor so the piping path in startMessageLoop won't re-fetch
+    // these messages. Save the old cursor so we can roll back on error.
+    const previousCursor = lastAgentTimestamp[slotKey] || '';
+    lastAgentTimestamp[slotKey] =
+      missedMessages[missedMessages.length - 1].timestamp;
+    saveState();
+
+    logger.info(
+      { group: group.name, messageCount: missedMessages.length },
+      'Processing messages',
+    );
+
+    // Track idle timer for closing stdin when agent is idle
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const resetIdleTimer = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        logger.debug(
+          { group: group.name },
+          'Idle timeout, closing container stdin',
+        );
+        queue.closeStdin(slotKey);
+      }, IDLE_TIMEOUT);
+    };
+
+    await channel.setTyping?.(chatJid, true);
+    let hadError = false;
+    let outputSentToUser = false;
+
+    const output = await runAgent(
+      group,
+      prompt,
+      chatJid,
+      async (result) => {
+        // Streaming output callback — called for each agent result
+        if (result.result) {
+          const raw =
+            typeof result.result === 'string'
+              ? result.result
+              : JSON.stringify(result.result);
+          const senderName = modelKey || ASSISTANT_NAME;
+          logger.info(
+            { group: group.name },
+            `Agent output: ${raw.length} chars`,
+          );
+          if (raw.trim()) {
+            await sendMessageAndStore(chatJid, raw, senderName);
+            outputSentToUser = true;
+          }
+          // Only reset idle timer on actual results, not session-update markers (result: null)
+          resetIdleTimer();
+        }
+
+        if (result.status === 'success') {
+          queue.notifyIdle(slotKey);
+        }
+
+        if (result.status === 'error') {
+          hadError = true;
+        }
+      },
+      modelKey,
+    );
+
+    await channel.setTyping?.(chatJid, false);
+    if (idleTimer) clearTimeout(idleTimer);
+
+    if (output === 'error' || hadError) {
+      // If we already sent output to the user, don't roll back the cursor —
+      // the user got their response and re-processing would send duplicates.
+      if (outputSentToUser) {
+        logger.warn(
+          { group: group.name },
+          'Agent error after output was sent, skipping cursor rollback to prevent duplicates',
+        );
+        return true;
       }
 
-      if (result.status === 'error') {
-        hadError = true;
-      }
-    },
-    modelKey,
-  );
-
-  await channel.setTyping?.(chatJid, false);
-  if (idleTimer) clearTimeout(idleTimer);
-
-  if (output === 'error' || hadError) {
-    // If we already sent output to the user, don't roll back the cursor —
-    // the user got their response and re-processing would send duplicates.
-    if (outputSentToUser) {
+      // Roll back cursor so retries can re-process these messages
+      lastAgentTimestamp[slotKey] = previousCursor;
+      saveState();
       logger.warn(
         { group: group.name },
-        'Agent error after output was sent, skipping cursor rollback to prevent duplicates',
+        'Agent error, rolled back message cursor for retry',
       );
-      return true;
+      return false;
     }
-    // Roll back cursor so retries can re-process these messages
-    lastAgentTimestamp[slotKey] = previousCursor;
-    saveState();
-    logger.warn(
-      { group: group.name },
-      'Agent error, rolled back message cursor for retry',
-    );
-    return false;
-  }
 
-  return true;
+    return true; // Processed one batch, let GroupQueue handle any remaining
+  }
 }
+
 
 /**
  * Send a message to a chat and store it in the database for future context.
@@ -515,7 +541,8 @@ async function sendMessageAndStore(
   }
 }
 
-async function runAgent(
+/** @internal */
+export async function runAgent(
   group: RegisteredGroup,
   prompt: string,
   chatJid: string,
