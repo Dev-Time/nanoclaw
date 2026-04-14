@@ -26,7 +26,7 @@ vi.mock('./config.js', () => ({
   PARALLEL_API_KEY: undefined,
   STREAMING_PROXY_ENABLED_HOSTS: undefined,
   API_TIMEOUT_MS: 1200000,
-  COMPACT_WINDOW: 100000,
+  COMPACT_WINDOW: 160000,
   MAX_RETRIES: 5,
   BASE_RETRY_MS: 5000,
   TIMEZONE: 'America/Los_Angeles',

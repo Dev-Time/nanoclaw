@@ -182,8 +182,8 @@ function buildVolumeMounts(
             // Enable conversation auto-compaction
             // https://code.claude.com/docs/en/compaction#enable-auto-compaction
             CLAUDE_CODE_AUTO_COMPACT: '1',
-            // Trigger compaction when context reaches 100,000 tokens
-            CLAUDE_CODE_AUTO_COMPACT_WINDOW: '100000',
+            // Trigger compaction when context reaches 160,000 tokens
+            CLAUDE_CODE_AUTO_COMPACT_WINDOW: '160000',
           },
         },
         null,
