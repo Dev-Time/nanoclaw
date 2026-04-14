@@ -28,7 +28,9 @@ export function extractSessionCommand(
     text === '/compact' ||
     text === '/models' ||
     text === '/model' ||
-    text.startsWith('/model ')
+    text.startsWith('/model ') ||
+    text === '/thinking' ||
+    text.startsWith('/thinking ')
   ) {
     return text;
   }
@@ -50,6 +52,7 @@ export function isSessionCommandAllowed(
 export interface AgentResult {
   status: 'success' | 'error';
   result?: string | object | null;
+  isIntermediate?: boolean;
 }
 
 /** Dependencies injected by the orchestrator. */
@@ -71,6 +74,8 @@ export interface SessionCommandDeps {
   chatJid: string;
   getChatModel: (chatJid: string) => string | undefined;
   setChatModel: (chatJid: string, modelAlias: string | null) => void;
+  getChatShowThinking: (chatJid: string) => boolean;
+  setChatShowThinking: (chatJid: string, show: boolean) => void;
 }
 
 function resultToText(result: string | object | null | undefined): string {
@@ -179,6 +184,26 @@ export async function handleSessionCommand(opts: {
     return { handled: true, success: true };
   }
 
+  if (command === '/thinking' || command.startsWith('/thinking ')) {
+    const args = command.slice(9).trim().toLowerCase();
+    if (!args) {
+      const current = deps.getChatShowThinking(deps.chatJid);
+      await deps.sendMessage(
+        `Intermediate thinking output is currently ${current ? 'ON' : 'OFF'} for this chat.`,
+      );
+    } else if (args === 'on') {
+      deps.setChatShowThinking(deps.chatJid, true);
+      await deps.sendMessage('Intermediate thinking output enabled.');
+    } else if (args === 'off') {
+      deps.setChatShowThinking(deps.chatJid, false);
+      await deps.sendMessage('Intermediate thinking output disabled.');
+    } else {
+      await deps.sendMessage('Usage: /thinking [on|off]');
+    }
+    deps.advanceCursor(cmdMsg.timestamp);
+    return { handled: true, success: true };
+  }
+
   const cmdIndex = missedMessages.indexOf(cmdMsg);
   const preCompactMsgs = missedMessages.slice(0, cmdIndex);
 
@@ -192,8 +217,11 @@ export async function handleSessionCommand(opts: {
       if (result.status === 'error') hadPreError = true;
       const text = resultToText(result.result);
       if (text) {
-        await deps.sendMessage(text);
-        preOutputSent = true;
+        const showThinking = deps.getChatShowThinking(deps.chatJid);
+        if (!result.isIntermediate || showThinking) {
+          await deps.sendMessage(text);
+          preOutputSent = true;
+        }
       }
       // Close stdin on session-update marker — emitted after query completes,
       // so all results (including multi-result runs) are already written.
@@ -227,7 +255,12 @@ export async function handleSessionCommand(opts: {
   const cmdOutput = await deps.runAgent(command, async (result) => {
     if (result.status === 'error') hadCmdError = true;
     const text = resultToText(result.result);
-    if (text) await deps.sendMessage(text);
+    if (text) {
+      const showThinking = deps.getChatShowThinking(deps.chatJid);
+      if (!result.isIntermediate || showThinking) {
+        await deps.sendMessage(text);
+      }
+    }
   });
 
   // Advance cursor to the command — messages AFTER it remain pending for next poll.

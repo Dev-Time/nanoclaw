@@ -600,6 +600,14 @@ export function setChatModel(chatJid: string, modelAlias: string | null): void {
   }
 }
 
+export function getChatShowThinking(chatJid: string): boolean {
+  return getRouterState(`chat_thinking:${chatJid}`) === 'true';
+}
+
+export function setChatShowThinking(chatJid: string, show: boolean): void {
+  setRouterState(`chat_thinking:${chatJid}`, String(show));
+}
+
 // --- Session accessors ---
 
 export function getSession(groupFolder: string): string | undefined {

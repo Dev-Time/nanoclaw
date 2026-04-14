@@ -144,6 +144,7 @@ describe('container-runner intermediate thinking output', () => {
     emitOutputMarker(fakeProc, {
       status: 'success',
       result: '🤔 *Thinking*\nI should check the weather.',
+      isIntermediate: true,
     });
     await vi.advanceTimersByTimeAsync(10);
 
@@ -151,6 +152,7 @@ describe('container-runner intermediate thinking output', () => {
     emitOutputMarker(fakeProc, {
       status: 'success',
       result: '🛠️ *Tool Call: get_weather*',
+      isIntermediate: true,
     });
     await vi.advanceTimersByTimeAsync(10);
 
