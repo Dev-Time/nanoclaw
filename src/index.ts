@@ -270,7 +270,9 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     // --- Slot Routing check ---
     // Skip processing if the message is clearly intended for a different agent slot.
     // For main groups, this prevents multiple slots (aliases) from processing the same untagged message.
-    const lastUserMsg = [...missedMessages].reverse().find((m) => !m.is_from_me);
+    const lastUserMsg = [...missedMessages]
+      .reverse()
+      .find((m) => !m.is_from_me);
 
     if (isMainGroup && lastUserMsg) {
       const alias = resolveModelAlias(lastUserMsg.content, group.trigger);
@@ -496,7 +498,6 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     return true; // Processed one batch, let GroupQueue handle any remaining
   }
 }
-
 
 /**
  * Send a message to a chat and store it in the database for future context.

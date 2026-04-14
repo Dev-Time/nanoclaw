@@ -28,9 +28,6 @@ models:
   - alias: nemo2
     base_url: http://host.docker.internal:11434
     model: nemotron-cascade-2:30b
-  - alias: nemo3
-    base_url: http://host.docker.internal:11434
-    model: nemotron-3-nano:30b
   - alias: mini3
     base_url: http://host.docker.internal:11434
     model: ministral-3:14b
@@ -43,6 +40,9 @@ models:
   - alias: qwen35
     base_url: http://host.docker.internal:11434
     model: qwen3.5:27b
+  - alias: qwen3535
+    base_url: http://host.docker.internal:11434
+    model: qwen3.5:35b
   - alias: gemmad
     base_url: http://host.docker.internal:11434
     model: gemma4:31b
