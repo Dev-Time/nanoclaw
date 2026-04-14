@@ -135,6 +135,8 @@ function makeDeps(
     chatJid: 'chat@test',
     getChatModel: vi.fn().mockReturnValue(undefined),
     setChatModel: vi.fn(),
+    getChatShowThinking: vi.fn().mockReturnValue(false),
+    setChatShowThinking: vi.fn(),
     ...overrides,
   };
 }
@@ -275,6 +277,56 @@ describe('handleSessionCommand', () => {
     expect(deps.setChatModel).not.toHaveBeenCalled();
     expect(deps.sendMessage).toHaveBeenCalledWith(
       expect.stringContaining('Unknown model alias'),
+    );
+  });
+
+  it('handles /thinking to show current status', async () => {
+    const deps = makeDeps({ getChatShowThinking: vi.fn().mockReturnValue(true) });
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/thinking')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('currently ON'),
+    );
+  });
+
+  it('handles /thinking on', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/thinking on')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.setChatShowThinking).toHaveBeenCalledWith('chat@test', true);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('enabled'),
+    );
+  });
+
+  it('handles /thinking off', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/thinking off')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result.handled).toBe(true);
+    expect(deps.setChatShowThinking).toHaveBeenCalledWith('chat@test', false);
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('disabled'),
     );
   });
 

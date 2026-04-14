@@ -42,6 +42,7 @@ interface ContainerOutput {
   result: string | null;
   newSessionId?: string;
   error?: string;
+  isIntermediate?: boolean;
 }
 
 interface SessionEntry {
@@ -590,6 +591,7 @@ async function runQuery(
             status: 'success',
             result: thoughts.join('\n\n'),
             newSessionId,
+            isIntermediate: true,
           });
         }
       }

@@ -41,6 +41,8 @@ import {
   getRouterState,
   getChatModel,
   setChatModel,
+  getChatShowThinking,
+  setChatShowThinking,
   initDatabase,
   setRegisteredGroup,
   setRouterState,
@@ -335,6 +337,8 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
         chatJid,
         getChatModel,
         setChatModel,
+        getChatShowThinking,
+        setChatShowThinking,
       },
       modelKey,
     });
@@ -453,8 +457,11 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
             `Agent output: ${raw.length} chars`,
           );
           if (raw.trim()) {
-            await sendMessageAndStore(chatJid, raw, senderName);
-            outputSentToUser = true;
+            const showThinking = getChatShowThinking(chatJid);
+            if (!result.isIntermediate || showThinking) {
+              await sendMessageAndStore(chatJid, raw, senderName);
+              outputSentToUser = true;
+            }
           }
           // Only reset idle timer on actual results, not session-update markers (result: null)
           resetIdleTimer();
