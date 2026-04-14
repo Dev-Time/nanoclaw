@@ -267,26 +267,6 @@ function buildVolumeMounts(
     });
   }
 
-  // Mount Seats.Aero logs if configured (read-write)
-  const hostLogDir =
-    SEATS_AERO_LOG_DIR || path.join(DATA_DIR, 'seats-aero-logs');
-  fs.mkdirSync(hostLogDir, { recursive: true });
-  mounts.push({
-    hostPath: hostLogDir,
-    containerPath: '/home/node/.claude/seats-aero-logs',
-    readonly: false,
-  });
-
-  // Mount Seats.Aero data if configured (read-write)
-  const hostDataDir =
-    SEATS_AERO_DATA_DIR || path.join(DATA_DIR, 'seats-aero-data');
-  fs.mkdirSync(hostDataDir, { recursive: true });
-  mounts.push({
-    hostPath: hostDataDir,
-    containerPath: '/home/node/.claude/seats-aero-data',
-    readonly: false,
-  });
-
   // Additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(

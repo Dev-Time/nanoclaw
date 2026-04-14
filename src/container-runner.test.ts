@@ -248,7 +248,7 @@ describe('container-runner environment variables', () => {
     fakeProc = createFakeProcess();
   });
 
-  it('passes SEATS_AERO_LOG_DIR, SEATS_AERO_DATA_DIR and mounts directories to spawn', async () => {
+  it('passes SEATS_AERO_LOG_DIR and SEATS_AERO_DATA_DIR to spawn', async () => {
     runContainerAgent(testGroup, testInput, () => {});
 
     // Need to let buildContainerArgs (which is async) finish
@@ -260,13 +260,6 @@ describe('container-runner environment variables', () => {
     );
     expect(spawnArgs).toContain(
       'SEATS_AERO_DATA_DIR=/home/node/.claude/seats-aero-data',
-    );
-    // Verify mounts (DATA_DIR is mocked as /tmp/nanoclaw-test-data)
-    expect(spawnArgs).toContain(
-      '/tmp/nanoclaw-test-data/seats-aero-logs:/home/node/.claude/seats-aero-logs',
-    );
-    expect(spawnArgs).toContain(
-      '/tmp/nanoclaw-test-data/seats-aero-data:/home/node/.claude/seats-aero-data',
     );
   });
 });
