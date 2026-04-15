@@ -25,6 +25,7 @@ export function extractSessionCommand(
   }
 
   if (
+    text === '/clear' ||
     text === '/compact' ||
     text === '/models' ||
     text === '/model' ||
@@ -205,7 +206,8 @@ export async function handleSessionCommand(opts: {
   }
 
   const cmdIndex = missedMessages.indexOf(cmdMsg);
-  const preCompactMsgs = missedMessages.slice(0, cmdIndex);
+  const preCompactMsgs =
+    command === '/clear' ? [] : missedMessages.slice(0, cmdIndex);
 
   // Send pre-compact messages to the agent so they're in the session context.
   if (preCompactMsgs.length > 0) {

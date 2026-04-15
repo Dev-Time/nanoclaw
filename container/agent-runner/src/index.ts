@@ -1035,7 +1035,7 @@ async function main(): Promise<void> {
   // --- Slash command handling ---
   // Only known session slash commands are handled here. This prevents
   // accidental interception of user prompts that happen to start with '/'.
-  const KNOWN_SESSION_COMMANDS = new Set(['/compact']);
+  const KNOWN_SESSION_COMMANDS = new Set(['/compact', '/clear']);
   const trimmedPrompt = prompt.trim();
   const isSessionSlashCommand = KNOWN_SESSION_COMMANDS.has(trimmedPrompt);
 
@@ -1051,7 +1051,7 @@ async function main(): Promise<void> {
         prompt: trimmedPrompt,
         options: {
           cwd: '/workspace/group',
-          resume: sessionId,
+          resume: trimmedPrompt === '/clear' ? undefined : sessionId,
           systemPrompt: undefined,
           allowedTools: [],
           env: sdkEnv,
@@ -1059,13 +1059,18 @@ async function main(): Promise<void> {
           allowDangerouslySkipPermissions: true,
           settingSources: ['project', 'user'] as const,
           hooks: {
-            PreCompact: [{ hooks: [createPreCompactHook(containerInput.assistantName)] }],
+            PreCompact: [
+              {
+                hooks: [createPreCompactHook(containerInput.assistantName)],
+              },
+            ],
           },
         },
       })) {
-        const msgType = message.type === 'system'
-          ? `system/${(message as { subtype?: string }).subtype}`
-          : message.type;
+        const msgType =
+          message.type === 'system'
+            ? `system/${(message as { subtype?: string }).subtype}`
+            : message.type;
         log(`[slash-cmd] type=${msgType}`);
 
         if (message.type === 'system' && message.subtype === 'init') {
@@ -1074,14 +1079,20 @@ async function main(): Promise<void> {
         }
 
         // Observe compact_boundary to confirm compaction completed
-        if (message.type === 'system' && (message as { subtype?: string }).subtype === 'compact_boundary') {
+        if (
+          message.type === 'system' &&
+          (message as { subtype?: string }).subtype === 'compact_boundary'
+        ) {
           compactBoundarySeen = true;
           log('Compact boundary observed — compaction completed');
         }
 
         if (message.type === 'result') {
           const resultSubtype = (message as { subtype?: string }).subtype;
-          const textResult = 'result' in message ? (message as { result?: string }).result : null;
+          let textResult =
+            'result' in message
+              ? (message as { result?: string }).result
+              : null;
 
           if (resultSubtype?.startsWith('error')) {
             hadError = true;
@@ -1092,6 +1103,9 @@ async function main(): Promise<void> {
               newSessionId: slashSessionId,
             });
           } else {
+            if (trimmedPrompt === '/clear' && !textResult) {
+              textResult = 'Conversation cleared.';
+            }
             writeOutput({
               status: 'success',
               result: textResult || 'Conversation compacted.',
@@ -1108,25 +1122,38 @@ async function main(): Promise<void> {
       writeOutput({ status: 'error', result: null, error: errorMsg });
     }
 
-    log(`Slash command done. compactBoundarySeen=${compactBoundarySeen}, hadError=${hadError}`);
+    log(
+      `Slash command done. compactBoundarySeen=${compactBoundarySeen}, hadError=${hadError}`,
+    );
 
     // Warn if compact_boundary was never observed — compaction may not have occurred
-    if (!hadError && !compactBoundarySeen) {
-      log('WARNING: compact_boundary was not observed. Compaction may not have completed.');
+    if (trimmedPrompt === '/compact' && !hadError && !compactBoundarySeen) {
+      log(
+        'WARNING: compact_boundary was not observed. Compaction may not have completed.',
+      );
     }
 
     // Only emit final session marker if no result was emitted yet and no error occurred
     if (!resultEmitted && !hadError) {
+      const defaultResult =
+        trimmedPrompt === '/clear'
+          ? 'Conversation cleared.'
+          : compactBoundarySeen
+            ? 'Conversation compacted.'
+            : 'Compaction requested but compact_boundary was not observed.';
+
       writeOutput({
         status: 'success',
-        result: compactBoundarySeen
-          ? 'Conversation compacted.'
-          : 'Compaction requested but compact_boundary was not observed.',
+        result: defaultResult,
         newSessionId: slashSessionId,
       });
     } else if (!hadError) {
       // Emit session-only marker so host updates session tracking
-      writeOutput({ status: 'success', result: null, newSessionId: slashSessionId });
+      writeOutput({
+        status: 'success',
+        result: null,
+        newSessionId: slashSessionId,
+      });
     }
     return;
   }

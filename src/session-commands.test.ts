@@ -14,6 +14,10 @@ describe('extractSessionCommand', () => {
     expect(extractSessionCommand('/compact', trigger)).toBe('/compact');
   });
 
+  it('detects bare /clear', () => {
+    expect(extractSessionCommand('/clear', trigger)).toBe('/clear');
+  });
+
   it('detects /compact with trigger prefix', () => {
     expect(extractSessionCommand('@Andy /compact', trigger)).toBe('/compact');
   });
@@ -411,6 +415,27 @@ describe('handleSessionCommand', () => {
       '/compact',
       expect.any(Function),
     );
+  });
+
+  it('skips pre-command messages before /clear', async () => {
+    const deps = makeDeps();
+    const msgs = [
+      makeMsg('some message', { timestamp: '99' }),
+      makeMsg('/clear', { timestamp: '100' }),
+    ];
+    const result = await handleSessionCommand({
+      missedMessages: msgs,
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result).toEqual({ handled: true, success: true });
+    expect(deps.formatMessages).not.toHaveBeenCalled();
+    // Only one runAgent call: for /clear itself
+    expect(deps.runAgent).toHaveBeenCalledTimes(1);
+    expect(deps.runAgent).toHaveBeenCalledWith('/clear', expect.any(Function));
   });
 
   it('allows is_from_me sender in non-main group', async () => {
