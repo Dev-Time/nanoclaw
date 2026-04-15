@@ -458,6 +458,7 @@ async function runQuery(
           }
         : undefined,
       allowedTools: [
+        'Agent',
         'Bash',
         'Read',
         'Write',
