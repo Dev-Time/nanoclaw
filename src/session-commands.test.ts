@@ -80,6 +80,31 @@ describe('extractSessionCommand', () => {
     );
   });
 
+  it('detects /thinking', () => {
+    expect(extractSessionCommand('/thinking', trigger)).toBe('/thinking');
+  });
+
+  it('detects /thinking with arguments', () => {
+    expect(extractSessionCommand('/thinking on', trigger)).toBe('/thinking on');
+  });
+
+  it('detects /clear with / trigger', () => {
+    const slashTrigger = /^\/\b/i;
+    expect(extractSessionCommand('/clear', slashTrigger)).toBe('/clear');
+  });
+
+  it('detects /compact with / trigger', () => {
+    const slashTrigger = /^\/\b/i;
+    expect(extractSessionCommand('/compact', slashTrigger)).toBe('/compact');
+  });
+
+  it('detects /model with / trigger', () => {
+    const slashTrigger = /^\/\b/i;
+    expect(extractSessionCommand('/model llama3', slashTrigger)).toBe(
+      '/model llama3',
+    );
+  });
+
   it('rejects /compact with extra text', () => {
     expect(
       extractSessionCommand('@gpt4 /compact', trigger, 'sonnet'),

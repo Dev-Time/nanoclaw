@@ -733,9 +733,12 @@ async function startMessageLoop(): Promise<void> {
             if (defaultCmd !== null) {
               if (
                 defaultCmd === '/compact' ||
+                defaultCmd === '/clear' ||
                 defaultCmd === '/models' ||
                 defaultCmd === '/model' ||
-                defaultCmd.startsWith('/model ')
+                defaultCmd.startsWith('/model ') ||
+                defaultCmd === '/thinking' ||
+                defaultCmd.startsWith('/thinking ')
               ) {
                 const savedAlias = getChatModel(chatJid);
                 loopCmdSlotKey = savedAlias
@@ -750,9 +753,12 @@ async function startMessageLoop(): Promise<void> {
               const stripped = aliasResult.strippedPrompt;
               if (
                 stripped === '/compact' ||
+                stripped === '/clear' ||
                 stripped === '/models' ||
                 stripped === '/model' ||
-                stripped.startsWith('/model ')
+                stripped.startsWith('/model ') ||
+                stripped === '/thinking' ||
+                stripped.startsWith('/thinking ')
               ) {
                 loopCmdSlotKey = makeSlotKey(chatJid, aliasResult.config.alias);
                 return true;

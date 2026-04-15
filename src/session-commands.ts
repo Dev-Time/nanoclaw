@@ -10,31 +10,35 @@ export function extractSessionCommand(
   triggerPattern: RegExp,
   modelKey?: string,
 ): string | null {
-  let text = content.trim();
+  const text = content.trim();
 
-  // Try stripping model alias first if it matches our modelKey
+  const isCommand = (t: string) =>
+    t === '/clear' ||
+    t === '/compact' ||
+    t === '/models' ||
+    t === '/model' ||
+    t.startsWith('/model ') ||
+    t === '/thinking' ||
+    t.startsWith('/thinking ');
+
+  // Case 1: Bare command (matches even if trigger would overlap, e.g. trigger is "/")
+  if (isCommand(text)) return text;
+
+  // Case 2: Strip model alias first if it matches our modelKey
+  let stripped = text;
   if (modelKey) {
     const match = /^@([\w][\w-]*)\b/i.exec(text);
     if (match && match[1].toLowerCase() === modelKey.toLowerCase()) {
-      text = text.slice(match[0].length).trim();
+      stripped = text.slice(match[0].length).trim();
     } else {
-      text = text.replace(triggerPattern, '').trim();
+      stripped = text.replace(triggerPattern, '').trim();
     }
   } else {
-    text = text.replace(triggerPattern, '').trim();
+    stripped = text.replace(triggerPattern, '').trim();
   }
 
-  if (
-    text === '/clear' ||
-    text === '/compact' ||
-    text === '/models' ||
-    text === '/model' ||
-    text.startsWith('/model ') ||
-    text === '/thinking' ||
-    text.startsWith('/thinking ')
-  ) {
-    return text;
-  }
+  if (isCommand(stripped)) return stripped;
+
   return null;
 }
 
