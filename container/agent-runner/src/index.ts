@@ -1035,7 +1035,7 @@ async function main(): Promise<void> {
   // --- Slash command handling ---
   // Only known session slash commands are handled here. This prevents
   // accidental interception of user prompts that happen to start with '/'.
-  const KNOWN_SESSION_COMMANDS = new Set(['/compact', '/clear']);
+  const KNOWN_SESSION_COMMANDS = new Set(['/compact']);
   const trimmedPrompt = prompt.trim();
   const isSessionSlashCommand = KNOWN_SESSION_COMMANDS.has(trimmedPrompt);
 
@@ -1051,7 +1051,7 @@ async function main(): Promise<void> {
         prompt: trimmedPrompt,
         options: {
           cwd: '/workspace/group',
-          resume: trimmedPrompt === '/clear' ? undefined : sessionId,
+          resume: sessionId,
           systemPrompt: undefined,
           allowedTools: [],
           env: sdkEnv,
@@ -1103,15 +1103,13 @@ async function main(): Promise<void> {
               newSessionId: slashSessionId,
             });
           } else {
-            if (trimmedPrompt === '/clear' && !textResult) {
-              textResult = 'Conversation cleared.';
-            }
             writeOutput({
               status: 'success',
               result: textResult || 'Conversation compacted.',
               newSessionId: slashSessionId,
             });
           }
+
           resultEmitted = true;
         }
       }
@@ -1135,12 +1133,9 @@ async function main(): Promise<void> {
 
     // Only emit final session marker if no result was emitted yet and no error occurred
     if (!resultEmitted && !hadError) {
-      const defaultResult =
-        trimmedPrompt === '/clear'
-          ? 'Conversation cleared.'
-          : compactBoundarySeen
-            ? 'Conversation compacted.'
-            : 'Compaction requested but compact_boundary was not observed.';
+      const defaultResult = compactBoundarySeen
+        ? 'Conversation compacted.'
+        : 'Compaction requested but compact_boundary was not observed.';
 
       writeOutput({
         status: 'success',

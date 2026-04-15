@@ -300,6 +300,7 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     }
 
     // --- Session command interception ---
+    const sessKey = sessionKey(group.folder, modelKey);
     const currentSavedAlias = getChatModel(chatJid) || undefined;
     const cmdResult = await handleSessionCommand({
       missedMessages,
@@ -339,6 +340,10 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
         setChatModel,
         getChatShowThinking,
         setChatShowThinking,
+        clearSession: () => {
+          delete sessions[sessKey];
+          deleteSession(group.folder);
+        },
       },
       modelKey,
     });

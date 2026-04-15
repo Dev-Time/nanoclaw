@@ -166,8 +166,9 @@ function makeDeps(
     setChatModel: vi.fn(),
     getChatShowThinking: vi.fn().mockReturnValue(false),
     setChatShowThinking: vi.fn(),
+    clearSession: vi.fn(),
     ...overrides,
-  };
+  } as unknown as SessionCommandDeps;
 }
 
 const trigger = /^@Andy\b/i;
@@ -458,9 +459,10 @@ describe('handleSessionCommand', () => {
     });
     expect(result).toEqual({ handled: true, success: true });
     expect(deps.formatMessages).not.toHaveBeenCalled();
-    // Only one runAgent call: for /clear itself
-    expect(deps.runAgent).toHaveBeenCalledTimes(1);
-    expect(deps.runAgent).toHaveBeenCalledWith('/clear', expect.any(Function));
+    // Host handles /clear natively, should NOT call runAgent
+    expect(deps.clearSession).toHaveBeenCalledTimes(1);
+    expect(deps.runAgent).not.toHaveBeenCalled();
+    expect(deps.sendMessage).toHaveBeenCalledWith('Conversation cleared.');
   });
 
   it('allows is_from_me sender in non-main group', async () => {

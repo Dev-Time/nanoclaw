@@ -81,6 +81,7 @@ export interface SessionCommandDeps {
   setChatModel: (chatJid: string, modelAlias: string | null) => void;
   getChatShowThinking: (chatJid: string) => boolean;
   setChatShowThinking: (chatJid: string, show: boolean) => void;
+  clearSession: () => void;
 }
 
 function resultToText(result: string | object | null | undefined): string {
@@ -252,6 +253,15 @@ export async function handleSessionCommand(opts: {
       }
       return { handled: true, success: false };
     }
+  }
+
+  // Handle /clear natively on the host to avoid "Unknown skill: clear" error
+  // from the agent container (SDK doesn't have built-in clear).
+  if (command === '/clear') {
+    deps.clearSession();
+    await deps.sendMessage('Conversation cleared.');
+    deps.advanceCursor(cmdMsg.timestamp);
+    return { handled: true, success: true };
   }
 
   // Forward the literal slash command as the prompt (no XML formatting)
