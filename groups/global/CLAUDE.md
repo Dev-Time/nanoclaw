@@ -118,3 +118,16 @@ If a user wants tasks running more than ~2x daily and a script can't reduce agen
 - Suggest restructuring with a script that checks the condition first
 - If the user needs an LLM to evaluate data, suggest using an API key with direct Anthropic API calls inside the script
 - Help the user find the minimum viable frequency
+
+- Remember: Use multiple edit tool calls instead of rewriting the whole file. Only rewrite (write tool) as a last resort, as this is a destructive action. If you have to rewrite, read a fresh copy immediately before writing to ensure you know the full content of the file.
+new bullet
+
+- **Appending notes without overwriting**: To safely add a new bullet to an existing markdown file, use . This keeps the existing content intact and just adds a new line at the end.
+
+For example, to document the tip about using  for safe appends, you can run:
+
+
+---
+> **Tip:** Always redirect with  (append) rather than  (overwrite) when you want to preserve existing content.
+
+    - Example: To append a note safely, use `echo 'text' >> /workspace/global/CLAUDE.md' (note the double backticks). This keeps existing content intact.

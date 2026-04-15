@@ -1,0 +1,1516 @@
+
+> nanoclaw@1.2.52 test
+> vitest run
+ RUN  v4.0.18 /home/whenke/nanoclaw
+stdout | src/channels/telegram.test.ts > TelegramChannel > connection lifecycle > resolves connect() when bot starts
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > connection lifecycle > registers command and message handlers on connect
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > connection lifecycle > registers error handler on connect
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > connection lifecycle > disconnects cleanly
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > delivers message for registered group
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > only emits metadata for unregistered chats
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > skips bot commands (/chatid, /ping) but passes other / messages through
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > extracts sender name from first_name
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > falls back to username when first_name missing
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > falls back to user ID when name and username missing
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > uses sender name as chat name for private chats
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > uses chat title as name for group chats
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > text message handling > converts message.date to ISO timestamp
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > translates @bot_username mention to trigger format
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > does not translate if message already matches trigger
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > does not translate mentions of other bots
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > handles mention in middle of message
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > handles message with no entities
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > @mention translation > ignores non-mention entities
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > reply context > extracts reply_to fields when replying to a text message
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > reply context > uses caption when reply has no text (media reply)
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > reply context > falls back to Unknown when reply sender has no from
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > reply context > does not set reply fields when no reply_to_message
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads photo and includes path in content
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads photo with caption
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > falls back to placeholder when download fails
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.526] DEBUG (602843): storeMessage
+    id: "msg-1"
+    chat_jid: "group@g.us"
+    sender: "123@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads document and includes filename and path
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.535] DEBUG (602843): storeMessage
+    id: "msg-2"
+    chat_jid: "group@g.us"
+    sender: "111@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.535] INFO (602837): Task created via IPC
+    taskId: "task-1776098114535-9nzbpw"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.537] DEBUG (602843): storeMessage
+    id: "msg-3"
+    chat_jid: "group@g.us"
+    sender: "me@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.540] DEBUG (602843): storeMessage
+    id: "msg-dup"
+    chat_jid: "group@g.us"
+    sender: "123@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.541] DEBUG (602843): storeMessage
+    id: "msg-dup"
+    chat_jid: "group@g.us"
+    sender: "123@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.542] INFO (602837): Task created via IPC
+    taskId: "task-1776098114541-rhq1mv"
+    sourceGroup: "other-group"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads video
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.546] WARN (602837): Unauthorized schedule_task attempt blocked
+    sourceGroup: "other-group"
+    targetFolder: "whatsapp_main"
+[12:35:14.552] WARN (602837): Cannot schedule task: target group not registered
+    targetJid: "unknown@g.us"
+[12:35:14.554] DEBUG (602843): storeMessage
+    id: "reply-1"
+    chat_jid: "group@g.us"
+    sender: "123"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads voice message
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.556] DEBUG (602843): storeMessage
+    id: "no-reply"
+    chat_jid: "group@g.us"
+    sender: "123"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > downloads audio with original filename
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.557] INFO (602837): Task paused via IPC
+    taskId: "task-other"
+    sourceGroup: "whatsapp_main"
+[12:35:14.558] DEBUG (602843): storeMessage
+    id: "reply-2"
+    chat_jid: "group@g.us"
+    sender: "456"
+    is_bot: undefined
+[12:35:14.561] INFO (602837): Task paused via IPC
+    taskId: "task-other"
+    sourceGroup: "other-group"
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > stores sticker with emoji (no download)
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > stores location with placeholder (no download)
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.564] WARN (602837): Unauthorized task pause attempt
+    taskId: "task-main"
+    sourceGroup: "other-group"
+[12:35:14.563] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.564] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.564] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.564] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.567] INFO (602837): Task resumed via IPC
+    taskId: "task-paused"
+    sourceGroup: "whatsapp_main"
+[12:35:14.568] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.568] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.568] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.568] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.569] INFO (602837): Task resumed via IPC
+    taskId: "task-paused"
+    sourceGroup: "other-group"
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > stores contact with placeholder (no download)
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.573] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > ignores non-text messages from unregistered chats
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.573] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.573] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.573] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.573] WARN (602837): Unauthorized task resume attempt
+    taskId: "task-paused"
+    sourceGroup: "third-group"
+[12:35:14.575] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-2"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-3"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-4"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-5"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.576] DEBUG (602843): storeMessage
+    id: "history-6"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-7"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-8"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-9"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-10"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-11"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-12"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-13"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-14"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-15"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-16"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-17"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-18"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-19"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-20"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-21"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.577] DEBUG (602843): storeMessage
+    id: "history-22"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-23"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-24"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-25"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-26"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-27"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-28"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-29"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-30"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-31"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-32"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-33"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-34"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-35"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-36"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-37"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-38"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-39"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.578] DEBUG (602843): storeMessage
+    id: "history-40"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > non-text messages > stores document with fallback name when filename missing
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.577] INFO (602837): Task cancelled via IPC
+    taskId: "task-to-cancel"
+    sourceGroup: "whatsapp_main"
+[12:35:14.580] DEBUG (602843): storeMessage
+    id: "history-41"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.581] DEBUG (602843): storeMessage
+    id: "history-42"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > sendMessage > sends message via bot API
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.582] DEBUG (602843): storeMessage
+    id: "history-43"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.582] DEBUG (602843): storeMessage
+    id: "history-44"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.582] DEBUG (602843): storeMessage
+    id: "history-45"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "history-46"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "history-47"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "history-48"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "history-49"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "history-50"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.583] DEBUG (602843): storeMessage
+    id: "new-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.584] INFO (602837): Task cancelled via IPC
+    taskId: "task-own"
+    sourceGroup: "other-group"
+[12:35:14.587] WARN (602837): Unauthorized task cancel attempt
+    taskId: "task-foreign"
+    sourceGroup: "other-group"
+stdout | src/channels/telegram.test.ts > TelegramChannel > sendMessage > strips tg: prefix from JID
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.589] WARN (602837): Unauthorized register_group attempt blocked
+    sourceGroup: "other-group"
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > sendMessage > splits messages exceeding 4096 characters
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.591] WARN (602837): Invalid register_group request - unsafe folder name
+    sourceGroup: "whatsapp_main"
+    folder: "../../outside"
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "pending-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.591] DEBUG (602843): storeMessage
+    id: "pending-2"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > sendMessage > sends exactly one message at 4096 characters
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-3"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-4"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-5"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-6"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-7"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-8"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-9"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-10"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-11"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-12"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] WARN (602837): Unauthorized refresh_groups attempt blocked
+    sourceGroup: "other-group"
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-13"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > sendMessage > handles send failure gracefully
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-14"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-15"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-16"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.592] DEBUG (602843): storeMessage
+    id: "pending-17"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-18"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-19"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-20"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-21"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-22"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-23"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-24"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-25"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-26"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-27"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-28"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-29"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.593] DEBUG (602843): storeMessage
+    id: "pending-30"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > setTyping > sends typing action when isTyping is true
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.596] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.597] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > setTyping > does nothing when isTyping is false
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.598] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.598] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-1"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-2"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-3"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-4"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-5"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-6"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-7"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-8"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-9"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-10"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-11"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.599] DEBUG (602843): storeMessage
+    id: "fresh-12"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-13"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-14"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-15"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-16"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-17"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-18"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-19"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.600] DEBUG (602843): storeMessage
+    id: "fresh-20"
+    chat_jid: "fresh@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > setTyping > handles typing indicator failure gracefully
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > bot commands > /chatid replies with chat ID and metadata
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.612] DEBUG (602843): storeMessage
+    id: "m1"
+    chat_jid: "group@g.us"
+    sender: "Alice@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.612] DEBUG (602843): storeMessage
+    id: "m2"
+    chat_jid: "group@g.us"
+    sender: "Bob@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.612] DEBUG (602843): storeMessage
+    id: "m3"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: true
+[12:35:14.612] DEBUG (602843): storeMessage
+    id: "m4"
+    chat_jid: "group@g.us"
+    sender: "Carol@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.612] DEBUG (602843): storeMessage
+    id: "m5"
+    chat_jid: "group@g.us"
+    sender: "Bot@s.whatsapp.net"
+    is_bot: undefined
+stdout | src/channels/telegram.test.ts > TelegramChannel > bot commands > /chatid shows chat type
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+stdout | src/channels/telegram.test.ts > TelegramChannel > bot commands > /ping replies with bot status
+  Telegram bot: @andy_ai_bot
+  Send /chatid to the bot to get a chat's registration ID
+[12:35:14.614] DEBUG (602843): storeMessage
+    id: "a1"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.614] DEBUG (602843): storeMessage
+    id: "a2"
+    chat_jid: "group2@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.614] DEBUG (602843): storeMessage
+    id: "a3"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: true
+[12:35:14.614] DEBUG (602843): storeMessage
+    id: "a4"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.615] INFO (602837): Task created via IPC
+    taskId: "task-1776098114615-2asdit"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.619] DEBUG (602843): storeMessage
+    id: "a1"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.620] DEBUG (602843): storeMessage
+    id: "a2"
+    chat_jid: "group2@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.620] DEBUG (602843): storeMessage
+    id: "a3"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: true
+[12:35:14.620] DEBUG (602843): storeMessage
+    id: "a4"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.625] DEBUG (602843): storeMessage
+    id: "a1"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.625] DEBUG (602843): storeMessage
+    id: "a2"
+    chat_jid: "group2@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.626] DEBUG (602843): storeMessage
+    id: "a3"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: true
+[12:35:14.626] DEBUG (602843): storeMessage
+    id: "a4"
+    chat_jid: "group1@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+ ✓ src/channels/telegram.test.ts (55 tests) 214ms
+[12:35:14.624] WARN (602837): Invalid cron expression
+    scheduleValue: "not a cron"
+[12:35:14.630] WARN (602837): Invalid interval
+    scheduleValue: "abc"
+[12:35:14.631] WARN (602837): Invalid interval
+    scheduleValue: "0"
+[12:35:14.627] INFO (602837): Task created via IPC
+    taskId: "task-1776098114627-k8y7hs"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.642] WARN (602837): Invalid timestamp
+    scheduleValue: "not-a-date"
+[12:35:14.644] INFO (602837): Task created via IPC
+    taskId: "task-1776098114644-dy6idq"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "group"
+[12:35:14.645] INFO (602837): Task created via IPC
+    taskId: "task-1776098114645-zf6qzu"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.647] INFO (602837): Task created via IPC
+    taskId: "task-1776098114647-zh513y"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.645] DEBUG (602843): storeMessage
+    id: "lim-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.645] DEBUG (602843): storeMessage
+    id: "lim-2"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.645] DEBUG (602843): storeMessage
+    id: "lim-3"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-4"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-5"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-6"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-7"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-8"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-9"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.646] DEBUG (602843): storeMessage
+    id: "lim-10"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.648] DEBUG (602843): storeMessage
+    id: "lim-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.648] DEBUG (602843): storeMessage
+    id: "lim-2"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.648] DEBUG (602843): storeMessage
+    id: "lim-3"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.648] DEBUG (602843): storeMessage
+    id: "lim-4"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.648] DEBUG (602843): storeMessage
+    id: "lim-5"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] DEBUG (602843): storeMessage
+    id: "lim-6"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] DEBUG (602843): storeMessage
+    id: "lim-7"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] DEBUG (602843): storeMessage
+    id: "lim-8"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] DEBUG (602843): storeMessage
+    id: "lim-9"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] DEBUG (602843): storeMessage
+    id: "lim-10"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.649] INFO (602837): Task created via IPC
+    taskId: "task-1776098114649-3e3jwe"
+    sourceGroup: "whatsapp_main"
+    targetFolder: "other-group"
+    contextMode: "isolated"
+[12:35:14.651] DEBUG (602843): storeMessage
+    id: "lim-1"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.651] DEBUG (602843): storeMessage
+    id: "lim-2"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.651] DEBUG (602843): storeMessage
+    id: "lim-3"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-4"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-5"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] WARN (602837): Invalid register_group request - missing required fields
+    data: {"type":"register_group","jid":"partial@g.us","name":"Partial"}
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-6"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-7"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-8"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-9"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+[12:35:14.652] DEBUG (602843): storeMessage
+    id: "lim-10"
+    chat_jid: "group@g.us"
+    sender: "user@s.whatsapp.net"
+    is_bot: undefined
+ ✓ src/ipc-auth.test.ts (33 tests) 154ms
+ ✓ setup/platform.test.ts (13 tests) 401ms
+     ✓ returns false for nonexistent command  352ms
+ ✓ src/db.test.ts (29 tests) 163ms
+ ✓ src/db-migration.test.ts (1 test) 513ms
+     ✓ defaults Telegram backfill chats to direct messages  509ms
+ ✓ setup/register.test.ts (20 tests) 122ms
+[12:35:15.236] INFO (602896): Scheduler loop started
+[12:35:15.236] INFO (602896): Found due tasks
+    count: 1
+[12:35:15.236] ERROR (602896): Task has invalid group folder
+    taskId: "task-invalid-folder"
+    groupFolder: "../../outside"
+    error: "Invalid group folder \"../../outside\""
+ ✓ src/container-runner.test.ts (4 tests) 43ms
+ ✓ setup/environment.test.ts (8 tests) 365ms
+     ✓ commandExists returns boolean  325ms
+ ✓ src/formatting.test.ts (82 tests) 67ms
+ ✓ src/task-scheduler.test.ts (4 tests) 34ms
+[12:35:15.494] WARN (602927): sender-allowlist: invalid JSON
+    path: "/tmp/allowlist-test-v2LbRk/sender-allowlist.json"
+[12:35:15.495] WARN (602927): sender-allowlist: invalid or missing default entry
+    path: "/tmp/allowlist-test-wefJSi/sender-allowlist.json"
+[12:35:15.496] WARN (602927): sender-allowlist: invalid or missing default entry
+    path: "/tmp/allowlist-test-AykGvv/sender-allowlist.json"
+[12:35:15.497] WARN (602927): sender-allowlist: skipping invalid chat entry
+    jid: "bad"
+    path: "/tmp/allowlist-test-tYXSG3/sender-allowlist.json"
+[12:35:15.516] DEBUG (602927): sender-allowlist: trigger denied for sender
+    chatJid: "g1"
+    sender: "eve"
+ ✓ src/sender-allowlist.test.ts (19 tests) 48ms
+ ✓ src/timezone.test.ts (8 tests) 35ms
+[12:35:15.588] INFO (602935): Session command
+    group: "test"
+    command: "/models"
+[12:35:15.589] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.589] DEBUG (602934): Container active, message queued
+    slotKey: "group1@g.us"
+[12:35:15.689] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "drain"
+    activeCount: 1
+[12:35:15.591] INFO (602935): Session command
+    group: "test"
+    command: "/models"
+[12:35:15.591] INFO (602935): Session command
+    group: "test"
+    command: "/model"
+[12:35:15.592] INFO (602935): Session command
+    group: "test"
+    command: "/model"
+[12:35:15.592] INFO (602935): Session command
+    group: "test"
+    command: "/model default"
+[12:35:15.592] INFO (602935): Session command
+    group: "test"
+    command: "/model llama3"
+[12:35:15.592] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.592] DEBUG (602934): Starting container for group
+    slotKey: "group2@g.us"
+    reason: "messages"
+    activeCount: 2
+[12:35:15.592] DEBUG (602934): At concurrency limit, message queued
+    slotKey: "group3@g.us"
+    activeCount: 2
+[12:35:15.602] DEBUG (602934): Starting container for group
+    slotKey: "group3@g.us"
+    reason: "drain"
+    activeCount: 2
+[12:35:15.593] INFO (602935): Session command
+    group: "test"
+    command: "/model unknown"
+[12:35:15.593] INFO (602935): Session command
+    group: "test"
+    command: "/compact"
+[12:35:15.593] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.603] DEBUG (602934): Container active, task queued
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.603] DEBUG (602934): Container active, message queued
+    slotKey: "group1@g.us"
+[12:35:15.603] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.603] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "drain"
+    activeCount: 1
+[12:35:15.595] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.595] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 1
+    delayMs: 5000
+[12:35:20.595] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:20.595] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 2
+    delayMs: 10000
+[12:35:15.600] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_abc123"
+    pid: 12345
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:30.595] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:30.595] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 3
+    delayMs: 20000
+[12:35:15.606] INFO (602935): Session command
+    group: "test"
+    command: "/compact"
+[12:35:15.606] INFO (602934): GroupQueue shutting down (containers detached, not killed)
+    activeCount: 0
+    detachedContainers: []
+[12:35:15.608] INFO (602935): Session command
+    group: "test"
+    command: "/compact"
+[12:35:15.608] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_test"
+    pid: 12345
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.609] INFO (602935): Session command
+    group: "test"
+    command: "/compact"
+[12:35:15.610] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_test"
+    pid: 12345
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.610] INFO (602935): Session command
+    group: "test"
+    command: "/compact"
+[12:35:15.610] WARN (602935): Pre-compact processing failed, aborting session command
+    group: "test"
+[12:35:15.611] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_save"
+    pid: 99999
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.610] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 1
+    delayMs: 5000
+ ✓ src/session-commands.test.ts (35 tests) 42ms
+[12:35:20.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:20.610] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 2
+    delayMs: 10000
+[12:35:15.616] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_existing"
+    pid: 12345
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:30.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:30.610] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 3
+    delayMs: 20000
+[12:35:50.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:50.610] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 4
+    delayMs: 40000
+[12:36:30.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:36:30.610] INFO (602934): Scheduling retry with backoff
+    slotKey: "group1@g.us"
+    retryCount: 5
+    delayMs: 80000
+[12:37:50.610] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:37:50.610] ERROR (602934): Max retries exceeded, dropping messages (will retry on next incoming message)
+    slotKey: "group1@g.us"
+    retryCount: 6
+[12:35:15.619] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.619] DEBUG (602934): Starting container for group
+    slotKey: "group2@g.us"
+    reason: "messages"
+    activeCount: 2
+[12:35:15.629] DEBUG (602934): At concurrency limit, message queued
+    slotKey: "group3@g.us"
+    activeCount: 2
+[12:35:15.639] DEBUG (602934): Starting container for group
+    slotKey: "group3@g.us"
+    reason: "drain"
+    activeCount: 2
+[12:35:15.623] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.633] DEBUG (602934): Task already running, skipping
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.626] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.636] DEBUG (602934): Container active, task queued
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.636] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.627] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.637] DEBUG (602934): Container active, task queued
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.637] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.622] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_first"
+    pid: 11111
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.622] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_second"
+    pid: 22222
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.629] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.639] DEBUG (602934): Container active, task queued
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.639] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.634] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+[12:35:15.640] DEBUG (602934): Starting container for group
+    slotKey: "group1@g.us"
+    reason: "messages"
+    activeCount: 1
+[12:35:15.650] DEBUG (602934): Container active, task queued
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+[12:35:15.650] DEBUG (602934): Running queued task
+    slotKey: "group1@g.us"
+    taskId: "task-1"
+    activeCount: 1
+ ✓ src/group-queue.test.ts (13 tests) 56ms
+[12:35:15.645] INFO (602941): Remote Control session started
+    url: "https://claude.ai/code?bridge=env_stop"
+    pid: 55555
+    sender: "user1"
+    chatJid: "tg:123"
+[12:35:15.645] INFO (602941): Remote Control session stopped
+    pid: 55555
+[12:35:15.646] INFO (602941): Restored Remote Control session from previous run
+    pid: 77777
+    url: "https://claude.ai/code?bridge=env_restored"
+[12:35:15.648] INFO (602941): Restored Remote Control session from previous run
+    pid: 77777
+    url: "https://claude.ai/code?bridge=env_restored"
+[12:35:15.648] INFO (602941): Remote Control session stopped
+    pid: 77777
+[12:35:15.649] INFO (602941): Restored Remote Control session from previous run
+    pid: 77777
+    url: "https://claude.ai/code?bridge=env_restored"
+ ✓ src/remote-control.test.ts (17 tests) 56ms
+[12:35:15.854] DEBUG (602962): storeMessage
+    id: "msg-1"
+    chat_jid: "group@g.us"
+    sender: "other-bot@s.whatsapp.net"
+    is_bot: undefined
+[12:35:15.860] DEBUG (602962): storeMessage
+    id: "msg-2"
+    chat_jid: "group@g.us"
+    sender: "other-bot@s.whatsapp.net"
+    is_bot: true
+ ✓ src/bot_messages_context.test.ts (2 tests) 12ms
+ ✓ src/model-router.test.ts (20 tests) 14ms
+[12:35:15.942] DEBUG (602982): storeMessage
+    id: "msg-1"
+    chat_jid: "group-123"
+    sender: "user"
+    is_bot: undefined
+[12:35:15.946] DEBUG (602982): storeMessage
+    id: "bot-andy-1"
+    chat_jid: "group-123"
+    sender: "bot"
+    is_bot: true
+ ✓ src/multi_agent_cursor.test.ts (1 test) 16ms
+ ✓ src/thinking-output.test.ts (1 test) 28ms
+(node:602969) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[12:35:16.262] DEBUG (602997): storeMessage
+    id: "bot-123"
+    chat_jid: "test-chat"
+    sender: "bot"
+    is_bot: true
+[12:35:16.265] DEBUG (602997): storeMessage
+    id: "bot-large"
+    chat_jid: "large-chat"
+    sender: "bot"
+    is_bot: true
+ ✓ src/verify_storage.test.ts (2 tests) 22ms
+ ✓ setup/service.test.ts (10 tests) 4ms
+ ✓ src/group-folder.test.ts (5 tests) 7ms
+ ✓ src/routing.test.ts (8 tests) 21ms
+[12:35:16.404] DEBUG (603007): storeMessage
+    id: "msg-1"
+    chat_jid: "group-123"
+    sender: "wyatt-jid"
+    is_bot: undefined
+[12:35:16.406] DEBUG (603007): storeMessage
+    id: "bot-msg-1"
+    chat_jid: "group-123"
+    sender: "bot"
+    is_bot: true
+[12:35:16.407] DEBUG (603007): storeMessage
+    id: "msg-2"
+    chat_jid: "group-123"
+    sender: "wyatt-jid"
+    is_bot: undefined
+ ✓ src/multi_agent_context.test.ts (1 test) 23ms
+ ✓ src/channels/registry.test.ts (4 tests) 3ms
+stderr | src/container-runtime.test.ts > ensureContainerRuntimeRunning > throws when docker info fails
+╔════════════════════════════════════════════════════════════════╗
+║  FATAL: Container runtime failed to start                      ║
+║                                                                ║
+║  Agents cannot run without a container runtime. To fix:        ║
+║  1. Ensure Docker is installed and running                     ║
+║  2. Run: docker info                                           ║
+║  3. Restart NanoClaw                                           ║
+╚════════════════════════════════════════════════════════════════╝
+ ✓ src/container-runtime.test.ts (9 tests) 14ms
+ Test Files  26 passed (26)
+      Tests  404 passed (404)
+   Start at  12:35:13
+   Duration  2.91s (transform 2.95s, setup 0ms, import 5.10s, tests 2.48s, environment 3ms)

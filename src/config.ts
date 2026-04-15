@@ -118,7 +118,7 @@ export const API_TIMEOUT_MS = parseInt(
   10,
 );
 export const COMPACT_WINDOW = parseInt(
-  process.env.COMPACT_WINDOW || envConfig.COMPACT_WINDOW || '160000',
+  process.env.COMPACT_WINDOW || envConfig.COMPACT_WINDOW || '100000',
   10,
 );
 export const MAX_RETRIES = parseInt(

@@ -281,7 +281,9 @@ describe('handleSessionCommand', () => {
   });
 
   it('handles /thinking to show current status', async () => {
-    const deps = makeDeps({ getChatShowThinking: vi.fn().mockReturnValue(true) });
+    const deps = makeDeps({
+      getChatShowThinking: vi.fn().mockReturnValue(true),
+    });
     const result = await handleSessionCommand({
       missedMessages: [makeMsg('/thinking')],
       isMainGroup: true,
