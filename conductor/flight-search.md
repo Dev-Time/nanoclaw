@@ -1,15 +1,16 @@
-# Objective
-Evaluate and improve the `flight-search` skill according to the `skill-creator` guidelines, then move it to the `telegram_main` session skills directory so it is automatically picked up by agents.
+# Mount seats-aero skill in Agent Container
 
-# Key Files & Context
-- Source: `/home/whenke/nanoclaw/groups/telegram_main/flight-search/SKILL.md`
-- Target Directory: `/home/whenke/nanoclaw/data/sessions/telegram_main/.claude/skills/flight-search`
+## Objective
+Mount the `seats-aero` flight-search skill directory from the host (`/home/whenke/seats-aero-mcp/skills/flight-search`) into the agent's `.claude/skills/` directory (`/home/node/.claude/skills/flight-search`) inside the container. This will allow the agent to use the skill since the execution loop is already configured to permit the `Skill` tool and load from filesystem sources.
 
-# Implementation Steps
-1. **Rewrite `SKILL.md`**: Update the `flight-search/SKILL.md` file to include proper YAML frontmatter with a "pushy" description, explicit instructions for filtering flights (including the exact `jq` command instead of vaguely referencing one), and improved imperative language.
-2. **Move Directory**: Move the entire `flight-search` directory from `/home/whenke/nanoclaw/groups/telegram_main/` to the target directory `/home/whenke/nanoclaw/data/sessions/telegram_main/.claude/skills/`.
+## Implementation Steps
 
-# Verification & Testing
-- Ensure the `SKILL.md` file has valid YAML frontmatter.
-- Verify the directory has been successfully moved to the target location.
-- (Optional) Run a test prompt to ensure the skill triggers correctly (if supported in the current environment).
+1.  **Modify `src/container-runner.ts`:**
+    *   Locate the `buildVolumeMounts` function.
+    *   Find where the main `.claude` directory is mounted (`mounts.push({ hostPath: groupSessionsDir, containerPath: '/home/node/.claude', readonly: false });`).
+    *   Add a check for the existence of the host skill directory (`/home/whenke/seats-aero-mcp/skills/flight-search`).
+    *   If the directory exists, push a new `VolumeMount` object to the `mounts` array, mounting the host directory to `/home/node/.claude/skills/flight-search` as read-only.
+
+## Verification
+1.  Verify the TypeScript build succeeds (`npm run build`).
+2.  Restart the container agent and run a test prompt to ensure it can discover and load the `flight-search` skill.

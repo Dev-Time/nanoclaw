@@ -210,6 +210,16 @@ function buildVolumeMounts(
     readonly: false,
   });
 
+  // Mount seats-aero skill from host to agent container (read-only)
+  const seatsAeroSkillPath = '/home/whenke/seats-aero-mcp/skills/flight-search';
+  if (fs.existsSync(seatsAeroSkillPath)) {
+    mounts.push({
+      hostPath: seatsAeroSkillPath,
+      containerPath: '/home/node/.claude/skills/flight-search',
+      readonly: true,
+    });
+  }
+
   // Per-slot IPC namespace: each model slot gets its own IPC directory.
   // Default slot: data/ipc/{groupFolder}/  Alias slot: data/ipc/{groupFolder}--{modelKey}/
   const groupIpcDir = modelKey
