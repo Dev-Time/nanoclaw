@@ -210,6 +210,19 @@ function createPreCompactHook(assistantName?: string): HookCallback {
   };
 }
 
+/**
+ * Send a notification message to the user when auto-compaction is triggered.
+ */
+function createPreCompactNotificationHook(): HookCallback {
+  return async () => {
+    writeOutput({
+      status: 'success',
+      result: '♻️ Context limit reached. Auto-compacting conversation...',
+    });
+    return {};
+  };
+}
+
 function sanitizeFilename(summary: string): string {
   return summary
     .toLowerCase()
@@ -553,7 +566,12 @@ async function runQuery(
       },
       hooks: {
         PreCompact: [
-          { hooks: [createPreCompactHook(containerInput.assistantName)] },
+          {
+            hooks: [
+              createPreCompactHook(containerInput.assistantName),
+              createPreCompactNotificationHook(),
+            ],
+          },
         ],
       },
     },
