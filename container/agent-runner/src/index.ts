@@ -794,12 +794,19 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
         let fullContent = '';
         let lastResponse: any = null;
 
+        // Anthropic aggregation state
+        let anthropicMessage: any = null;
+        let anthropicUsage: any = { input_tokens: 0, output_tokens: 0 };
+        let anthropicContent: any[] = [];
+        let anthropicStopReason: string | null = null;
+        let anthropicStopSequence: string | null = null;
+
         upstreamRes.on('data', (chunk) => {
           const text = chunk.toString();
           let tokensCountBefore = fullContent.split(/\s+/).length;
           
           if (contentType.includes('text/event-stream')) {
-            // OpenAI SSE format
+            // OpenAI/Anthropic SSE format
             const lines = text.split('\n');
             for (const line of lines) {
               if (line.startsWith('data: ')) {
@@ -807,9 +814,37 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
                 if (data === '[DONE]') continue;
                 try {
                   const json = JSON.parse(data);
+                  lastResponse = json;
+
+                  // Universal text aggregation (fallback)
                   const content = json.choices?.[0]?.delta?.content || (json.type === 'content_block_delta' ? json.delta?.text : '') || '';
                   fullContent += content;
-                  lastResponse = json;
+
+                  // Anthropic-specific structured aggregation
+                  if (json.type === 'message_start' && json.message) {
+                    anthropicMessage = json.message;
+                    if (json.message.usage) {
+                      anthropicUsage.input_tokens = json.message.usage.input_tokens || 0;
+                      anthropicUsage.output_tokens = json.message.usage.output_tokens || 0;
+                    }
+                  } else if (json.type === 'content_block_start' && json.content_block) {
+                    anthropicContent.push(json.content_block);
+                  } else if (json.type === 'content_block_delta' && json.delta) {
+                    const block = anthropicContent[json.index || 0];
+                    if (block) {
+                      if (json.delta.type === 'text_delta' && typeof json.delta.text === 'string') {
+                        block.text = (block.text || '') + json.delta.text;
+                      } else if (json.delta.type === 'input_json_delta' && typeof json.delta.partial_json === 'string') {
+                        block.partial_json = (block.partial_json || '') + json.delta.partial_json;
+                      }
+                    }
+                  } else if (json.type === 'message_delta' && json.delta) {
+                    if (json.delta.stop_reason) anthropicStopReason = json.delta.stop_reason;
+                    if (json.delta.stop_sequence) anthropicStopSequence = json.delta.stop_sequence;
+                    if (json.usage) {
+                      anthropicUsage.output_tokens = json.usage.output_tokens || anthropicUsage.output_tokens;
+                    }
+                  }
                 } catch {}
               }
             }
@@ -858,12 +893,29 @@ async function startStreamingProxy(upstreamUrl: string, port: number): Promise<v
             };
           } else if (req.url?.includes('/v1/messages')) {
             // Anthropic format
-            finalResponse = {
-              ...lastResponse,
-              type: 'message',
-              content: [{ type: 'text', text: fullContent }],
-              stop_reason: 'end_turn',
-            };
+            if (anthropicMessage) {
+              finalResponse = {
+                ...anthropicMessage,
+                content: anthropicContent.map(b => {
+                  if (b.type === 'tool_use') {
+                    return { ...b, input: b.partial_json ? JSON.parse(b.partial_json) : {} };
+                  }
+                  return b;
+                }),
+                stop_reason: anthropicStopReason || 'end_turn',
+                stop_sequence: anthropicStopSequence,
+                usage: anthropicUsage,
+              };
+            } else {
+              // Fallback
+              finalResponse = {
+                ...lastResponse,
+                type: 'message',
+                content: [{ type: 'text', text: fullContent }],
+                stop_reason: 'end_turn',
+                usage: anthropicUsage,
+              };
+            }
           } else {
             // Ollama native
             finalResponse = {
