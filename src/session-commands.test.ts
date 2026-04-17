@@ -156,6 +156,7 @@ function makeDeps(
     sendMessage: vi.fn().mockResolvedValue(undefined),
     setTyping: vi.fn().mockResolvedValue(undefined),
     runAgent: vi.fn().mockResolvedValue('success'),
+    runBackgroundMemoryExtraction: vi.fn().mockResolvedValue(undefined),
     closeStdin: vi.fn(),
     advanceCursor: vi.fn(),
     formatMessages: vi.fn().mockReturnValue('<formatted>'),
@@ -430,6 +431,7 @@ describe('handleSessionCommand', () => {
       deps,
     });
     expect(result).toEqual({ handled: true, success: true });
+    expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
     expect(deps.formatMessages).toHaveBeenCalledWith([msgs[0]], 'UTC');
     // Two runAgent calls: pre-compact + /compact
     expect(deps.runAgent).toHaveBeenCalledTimes(2);
@@ -458,6 +460,7 @@ describe('handleSessionCommand', () => {
       deps,
     });
     expect(result).toEqual({ handled: true, success: true });
+    expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
     expect(deps.formatMessages).not.toHaveBeenCalled();
     // Host handles /clear natively, should NOT call runAgent
     expect(deps.clearSession).toHaveBeenCalledTimes(1);

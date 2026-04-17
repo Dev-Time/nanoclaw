@@ -14,6 +14,7 @@ export function escapeXml(s: string): string {
 export function formatMessages(
   messages: NewMessage[],
   timezone: string,
+  playbookContent?: string,
 ): string {
   const lines = messages.map((m) => {
     const displayTime = formatLocalTime(m.timestamp, timezone);
@@ -28,8 +29,11 @@ export function formatMessages(
   });
 
   const header = `<context timezone="${escapeXml(timezone)}" />\n`;
+  const playbook = playbookContent
+    ? `<playbook>\n${playbookContent}\n</playbook>\n`
+    : '';
 
-  return `${header}<messages>\n${lines.join('\n')}\n</messages>`;
+  return `${header}${playbook}<messages>\n${lines.join('\n')}\n</messages>`;
 }
 
 export function stripInternalTags(text: string): string {

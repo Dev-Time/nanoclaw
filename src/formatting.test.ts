@@ -100,6 +100,20 @@ describe('formatMessages', () => {
     expect(result).toContain('sender="A &amp; B &lt;Co&gt;"');
   });
 
+  it('injects playbook content when provided', () => {
+    const playbook = '### [RULE-001] Test Rule\n* Action: Test';
+    const result = formatMessages([makeMsg()], TZ, playbook);
+    expect(result).toContain('<playbook>');
+    expect(result).toContain(playbook);
+    expect(result).toContain('</playbook>');
+    // Ensure it comes after context and before messages
+    const contextIdx = result.indexOf('<context');
+    const playbookIdx = result.indexOf('<playbook>');
+    const messagesIdx = result.indexOf('<messages>');
+    expect(contextIdx).toBeLessThan(playbookIdx);
+    expect(playbookIdx).toBeLessThan(messagesIdx);
+  });
+
   it('escapes special characters in content', () => {
     const result = formatMessages(
       [makeMsg({ content: '<script>alert("xss")</script>' })],

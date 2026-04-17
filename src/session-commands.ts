@@ -67,7 +67,8 @@ export interface SessionCommandDeps {
   runAgent: (
     prompt: string,
     onOutput: (result: AgentResult) => Promise<void>,
-  ) => Promise<'success' | 'error'>;
+  ) => Promise<any | 'error'>;
+  runBackgroundMemoryExtraction: () => Promise<void>;
   closeStdin: () => void;
   advanceCursor: (timestamp: string) => void;
   formatMessages: (msgs: NewMessage[], timezone: string) => string;
@@ -216,6 +217,7 @@ export async function handleSessionCommand(opts: {
 
   // Send pre-compact messages to the agent so they're in the session context.
   if (preCompactMsgs.length > 0) {
+    await deps.runBackgroundMemoryExtraction();
     const prePrompt = deps.formatMessages(preCompactMsgs, timezone);
     let hadPreError = false;
     let preOutputSent = false;
@@ -258,6 +260,7 @@ export async function handleSessionCommand(opts: {
   // Handle /clear natively on the host to avoid "Unknown skill: clear" error
   // from the agent container (SDK doesn't have built-in clear).
   if (command === '/clear') {
+    await deps.runBackgroundMemoryExtraction();
     deps.clearSession();
     await deps.sendMessage('Conversation cleared.');
     deps.advanceCursor(cmdMsg.timestamp);

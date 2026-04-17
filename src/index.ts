@@ -52,6 +52,7 @@ import {
 } from './db.js';
 import { GroupQueue } from './group-queue.js';
 import { resolveGroupFolderPath } from './group-folder.js';
+import { runBackgroundMemoryExtraction } from './memory-extraction.js';
 import { startIpcWatcher } from './ipc.js';
 import { findChannel, formatMessages, formatOutbound } from './router.js';
 import { ChannelType } from './text-styles.js';
@@ -241,6 +242,19 @@ export function _setRegisteredGroups(
   registeredGroups = groups;
 }
 
+function readPlaybookContent(groupFolder: string): string | undefined {
+  try {
+    const groupPath = resolveGroupFolderPath(groupFolder);
+    const playbookPath = path.join(groupPath, 'playbook.md');
+    if (fs.existsSync(playbookPath)) {
+      return fs.readFileSync(playbookPath, 'utf8').trim();
+    }
+  } catch (err) {
+    logger.warn({ groupFolder, err }, 'Failed to read playbook.md');
+  }
+  return undefined;
+}
+
 /** @internal */
 export async function processGroupMessages(slotKey: string): Promise<boolean> {
   const { chatJid, modelKey } = parseSlotKey(slotKey);
@@ -315,6 +329,13 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
           channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
         runAgent: (prompt, onOutput) =>
           runAgent(group, prompt, chatJid, onOutput, modelKey),
+        runBackgroundMemoryExtraction: () =>
+          runBackgroundMemoryExtraction(
+            chatJid,
+            group.folder,
+            (prompt) => runAgent(group, prompt, chatJid, undefined, modelKey),
+            TIMEZONE,
+          ),
         closeStdin: () => queue.closeStdin(slotKey),
         advanceCursor: (ts) => {
           lastAgentTimestamp[slotKey] = ts;
@@ -413,7 +434,8 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
       }
     }
 
-    const prompt = formatMessages(missedMessages, TIMEZONE);
+    const playbookContent = readPlaybookContent(group.folder);
+    const prompt = formatMessages(missedMessages, TIMEZONE, playbookContent);
 
     // Advance cursor so the piping path in startMessageLoop won't re-fetch
     // these messages. Save the old cursor so we can roll back on error.
@@ -433,6 +455,17 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     const resetIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
+        runBackgroundMemoryExtraction(
+          chatJid,
+          group.folder,
+          (prompt) => runAgent(group, prompt, chatJid, undefined, modelKey),
+          TIMEZONE,
+        ).catch((err) =>
+          logger.warn(
+            { groupFolder: group.folder, err },
+            'Failed idle-timeout memory extraction',
+          ),
+        );
         logger.debug(
           { group: group.name },
           'Idle timeout, closing container stdin',
@@ -561,7 +594,7 @@ export async function runAgent(
   chatJid: string,
   onOutput?: (output: ContainerOutput) => Promise<void>,
   modelKey?: string,
-): Promise<'success' | 'error'> {
+): Promise<ContainerOutput | 'error'> {
   const isMain = group.isMain === true;
   const slotKey = makeSlotKey(chatJid, modelKey);
   const sessKey = sessionKey(group.folder, modelKey);
@@ -671,7 +704,7 @@ export async function runAgent(
       return 'error';
     }
 
-    return 'success';
+    return output;
   } catch (err) {
     logger.error({ group: group.name, err }, 'Agent error');
     return 'error';
@@ -878,7 +911,12 @@ async function startMessageLoop(): Promise<void> {
             }
           }
 
-          const effectiveFormatted = formatMessages(messagesToSend, TIMEZONE);
+          const playbookContent = readPlaybookContent(group.folder);
+          const effectiveFormatted = formatMessages(
+            messagesToSend,
+            TIMEZONE,
+            playbookContent,
+          );
 
           if (queue.sendMessage(slotKey, effectiveFormatted)) {
             logger.debug(
