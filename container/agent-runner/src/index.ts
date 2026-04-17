@@ -496,6 +496,7 @@ async function runQuery(
         'mcp__brave__*',
         'mcp__parallel-search__*',
         'mcp__parallel-task__*',
+        'mcp__qmd__*',
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -564,6 +565,10 @@ async function runQuery(
               },
             }
           : {}),
+        qmd: {
+          type: 'http' as const,
+          url: 'http://host.docker.internal:8182/mcp',
+        },
       },
       hooks: {
         PreCompact: [
