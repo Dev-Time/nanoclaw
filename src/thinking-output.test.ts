@@ -18,6 +18,7 @@ vi.mock('./config.js', () => ({
   GROUPS_DIR: '/tmp/nanoclaw-test-groups',
   IDLE_TIMEOUT: 3300000,
   OLLAMA_ADMIN_TOOLS: false,
+  ONECLI_API_KEY: '',
   ONECLI_URL: 'http://localhost:10254',
   SEATS_AERO_API_KEY: undefined,
   SEATS_AERO_LOG_DIR: undefined,
