@@ -242,17 +242,19 @@ export function _setRegisteredGroups(
   registeredGroups = groups;
 }
 
-function readPlaybookContent(groupFolder: string): string | undefined {
+function readPlaybookContent(groupFolder: string): string {
   try {
     const groupPath = resolveGroupFolderPath(groupFolder);
     const playbookPath = path.join(groupPath, 'playbook.md');
-    if (fs.existsSync(playbookPath)) {
-      return fs.readFileSync(playbookPath, 'utf8').trim();
+    if (!fs.existsSync(playbookPath)) {
+      fs.writeFileSync(playbookPath, '');
+      return '';
     }
+    return fs.readFileSync(playbookPath, 'utf8').trim();
   } catch (err) {
-    logger.warn({ groupFolder, err }, 'Failed to read playbook.md');
+    logger.warn({ groupFolder, err }, 'Failed to read or initialize playbook.md');
   }
-  return undefined;
+  return '';
 }
 
 /** @internal */

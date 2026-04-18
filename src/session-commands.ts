@@ -260,9 +260,9 @@ export async function handleSessionCommand(opts: {
   // Handle /clear natively on the host to avoid "Unknown skill: clear" error
   // from the agent container (SDK doesn't have built-in clear).
   if (command === '/clear') {
+    await deps.sendMessage('Conversation cleared.');
     await deps.runBackgroundMemoryExtraction();
     deps.clearSession();
-    await deps.sendMessage('Conversation cleared.');
     deps.advanceCursor(cmdMsg.timestamp);
     return { handled: true, success: true };
   }

@@ -8,7 +8,7 @@ from datetime import datetime
 CURSOR_PATH = os.environ.get("CURSOR_PATH", "/workspace/group/playbook-cursor.txt")
 PROJECTS_DIR = os.environ.get("PROJECTS_DIR", "/home/node/.claude/projects/-workspace-group")
 OVERLAP_EVENTS = 5
-CHARACTER_BUDGET = 100000
+CHARACTER_BUDGET = 200000
 
 def load_cursor():
     if os.path.exists(CURSOR_PATH):

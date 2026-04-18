@@ -9,7 +9,7 @@ const PLAYBOOK_ARCHITECT_PROMPT = `
 You must process the session logs sequentially in chunks and extract rules. Follow this exact loop using your tools:
 
 1. **Get Chunk:** Run \`python3 /home/node/.claude/skills/playbook-architect/chunk_reader.py get [BUDGET] [OVERLAP]\`.
-   - **BUDGET**: Configurable character limit (default: 100,000).
+   - **BUDGET**: Configurable character limit (default: 200,000).
    - **OVERLAP**: Number of events to include from the previous turn (default: 5).
 2. **Check for Data:**
    - If the output is "NO_MORE_DATA", your mission is complete. Terminate.

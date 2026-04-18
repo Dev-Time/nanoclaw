@@ -30,7 +30,7 @@ export function formatMessages(
 
   const header = `<context timezone="${escapeXml(timezone)}" />\n`;
   const playbook = playbookContent
-    ? `<playbook>\n${playbookContent}\n</playbook>\n`
+    ? `<playbook_operational_reflexes>\n${playbookContent}\n</playbook_operational_reflexes>\n`
     : '';
 
   return `${header}${playbook}<messages>\n${lines.join('\n')}\n</messages>`;
