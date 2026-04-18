@@ -17,10 +17,14 @@ import {
   updateTaskAfterRun,
 } from './db.js';
 import { GroupQueue } from './group-queue.js';
-import { resolveGroupFolderPath } from './group-folder.js';
+import {
+  resolveGroupFolderPath,
+} from './group-folder.js';
 import { logger } from './logger.js';
+import { runBackgroundMemoryExtraction } from './memory-extraction.js';
 import { loadModelConfigs } from './model-router.js';
 import { RegisteredGroup, ScheduledTask, ModelOverride } from './types.js';
+import { runAgent } from './index.js';
 
 /**
  * Compute the next run time for a recurring task, anchored to the
@@ -203,6 +207,23 @@ async function runTask(
           // Forward result to user (sendMessage handles formatting)
           await deps.sendMessage(task.chat_jid, streamedOutput.result);
           scheduleClose();
+        }
+        if (streamedOutput.autocompacted) {
+          runBackgroundMemoryExtraction(
+            task.chat_jid,
+            task.group_folder,
+            (prompt, onOutput) =>
+              runAgent(group, prompt, task.chat_jid, onOutput, modelKey),
+            TIMEZONE,
+            async (text) => {
+              await deps.sendMessage(task.chat_jid, text);
+            },
+          ).catch((err) =>
+            logger.warn(
+              { groupFolder: task.group_folder, err },
+              'Failed task-autocompact memory extraction',
+            ),
+          );
         }
         if (streamedOutput.status === 'success') {
           deps.queue.notifyIdle(task.chat_jid);

@@ -15,6 +15,7 @@ export function formatMessages(
   messages: NewMessage[],
   timezone: string,
   playbookContent?: string,
+  memoryContent?: string,
 ): string {
   const lines = messages.map((m) => {
     const displayTime = formatLocalTime(m.timestamp, timezone);
@@ -32,8 +33,11 @@ export function formatMessages(
   const playbook = playbookContent
     ? `<playbook_operational_reflexes>\n${playbookContent}\n</playbook_operational_reflexes>\n`
     : '';
+  const memory = memoryContent
+    ? `<memory_facts_preferences>\n${memoryContent}\n</memory_facts_preferences>\n`
+    : '';
 
-  return `${header}${playbook}<messages>\n${lines.join('\n')}\n</messages>`;
+  return `${header}${playbook}${memory}<messages>\n${lines.join('\n')}\n</messages>`;
 }
 
 export function stripInternalTags(text: string): string {

@@ -43,6 +43,7 @@ interface ContainerOutput {
   newSessionId?: string;
   error?: string;
   isIntermediate?: boolean;
+  autocompacted?: boolean;
 }
 
 interface SessionEntry {
@@ -218,6 +219,21 @@ function createPreCompactNotificationHook(): HookCallback {
     writeOutput({
       status: 'success',
       result: '♻️ Context limit reached. Auto-compacting conversation...',
+    });
+    return {};
+  };
+}
+
+/**
+ * Trigger background memory extraction on the host when auto-compaction occurs.
+ */
+function createPreCompactMemoryTriggerHook(): HookCallback {
+  return async () => {
+    writeOutput({
+      status: 'success',
+      result: null,
+      isIntermediate: true,
+      autocompacted: true,
     });
     return {};
   };
@@ -576,6 +592,7 @@ async function runQuery(
             hooks: [
               createPreCompactHook(containerInput.assistantName),
               createPreCompactNotificationHook(),
+              createPreCompactMemoryTriggerHook(),
             ],
           },
         ],

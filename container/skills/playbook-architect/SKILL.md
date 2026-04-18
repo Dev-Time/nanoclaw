@@ -1,36 +1,54 @@
 ---
 name: playbook-architect
-description: Extract operational reflexes, infrastructure rules, and execution anti-patterns from the session into a playbook. Use when the user wants to "save memories", "extract rules", or after a complex task.
+description: Extract operational reflexes, facts, and preferences from the session into a playbook and memory base. Use when the user wants to "save memories", "extract rules", or after a complex task. Triggers on "Save memories", "Extract rules", "Run memo sweep", or "/memo".
 ---
 
-# Role: Playbook Architect & Meta-Cognitive Debugger
+# Role: Memory Curator & Meta-Cognitive Debugger
 
-**Objective:** You are a reasoning engine responsible for analyzing session transcripts and distilling them into pure operational reflexes (Procedural Memory). You must extract infrastructure rules, shell/tooling heuristics, and execution anti-patterns. You are building a technical playbook, not a declarative diary.
+**Objective:** Analyze session transcripts to extract both Procedural Memory (operational reflexes) and Declarative Memory (facts/preferences). You are building a technical playbook and a persistent memory base, not a declarative diary.
 
-## The Core Philosophy (Infrastructure vs. Application)
-You must completely decouple the *Operational Rule* (The "How") from the *Application Content* (The "What").
-* **Discard Domain Data:** Strip all references to the specific subject matter of the project (e.g., airplane engines, flight destinations, frontend themes).
-* **Retain the Abstract Shape:** Use "Context Tags" to describe the *type* of data or environment. If a command failed because a CAD file was too large, the rule applies to `Large-Binary-Files`, not "airplanes."
+## Complexity Threshold
+You MUST proactively look for and extract memory when:
+- High task complexity (e.g., 5+ tool calls in a single turn/workflow).
+- You encounter errors, loops, or dead ends that required a workaround or fix.
+- Discovery of non-trivial workflows or infrastructure facts.
+
+## The Memory Split
+### 1. Playbook (Procedural Memory)
+Operational rules, shell/tooling heuristics, and execution anti-patterns.
+*   **Format:**
+    ### [PROPOSED-ID] Title of Rule
+    *   **Context:** `[Tag 1]`, `[Tag 2]`
+    *   **Trigger:** [When to apply this, starting with "When..."]
+    *   **Action:** [A concise, imperative command.]
+
+### 2. Memory (Declarative Memory)
+Persistent facts about the environment, user preferences, and completed work.
+*   **Format:**
+    ### [Category Name]
+    - **[Fact/Preference/Correction/Work]**: Detailed description.
+    - **Context**: Brief mention of how/when this was learned.
+
+## Curation Guidelines
+### Save These (Proactively)
+- **User preferences**: "I prefer TypeScript over JavaScript", "Use tabs for indentation".
+- **Environment facts**: "Server runs Debian 12", "PostgreSQL 16 is installed".
+- **Corrections**: "Don't use sudo for Docker", "The API endpoint changed to /v2".
+- **Completed work**: "Migrated database on 2026-01-15", "Initialized project structure".
+
+### Skip These
+- Trivial/obvious info: "User asked about Python", "Agent listed files".
+- Easily re-discovered facts: "Standard library documentation", "Syntax of basic commands".
+- Raw data dumps: Large code blocks, log files, data tables.
 
 ## Execution Steps
-1. **Review Existing Memory:** Read the `playbook.md` file in the current directory (if it exists) to ensure you do not propose redundant rules.
-2. **Scan the Transcript:** Identify tool friction (loops, failures, user corrections) or highly successful complex pipelines from the current session.
-3. **Filter & Abstract:** Generalize the failure or success into a reusable operational rule.
-4. **Draft the Proposal:** Do not execute file changes yet. Output your findings strictly in the Typographic Format below.
-
-## Typographic Output Format
-You must use the exact typographic structure below. Do not deviate.
-
-### [PROPOSED-ID] Title of Rule
-* **Context:** `[Tag 1]`, `[Tag 2]`
-* **Trigger:** [When to apply this, starting with "When..."]
-* **Action:** [A concise, imperative command.]
+1. **Review Existing Memory:** Read `playbook.md`, `memory.md`, and their respective `-staging.md` counterparts in the current directory to avoid redundancy.
+2. **Scan the Transcript:** Run `python3 /home/node/.claude/skills/playbook-architect/chunk_reader.py get`. Look for `tool_use` events to judge complexity.
+3. **Filter & Abstract:** Distill findings into the Playbook or Memory categories.
+4. **Draft the Proposal:** Output your findings strictly in the Typographic Formats defined above.
 
 **End of Output Directive:** 
 Conclude your proposal with exactly: *"Review these proposals. Reply with 'Commit [Number]' or 'Reject'."*
 
 ## The Commit Protocol
-When the user replies with "Commit [Number]", you MUST use your file editing tools to **append** the exact Typographic Output for that specific proposal to the file `playbook.md` in the current working directory. Do not rewrite the entire file; only append.
-
-## The Reject/Cleanup Protocol
-When the user replies with "Reject [Number]", or when you have successfully committed a rule from `playbook-staging.md`, you should remove that rule from `playbook-staging.md` to keep the staging area clean.
+When the user replies with "Commit [Number]", use your file editing tools to **append** the proposal to the correct file (`playbook.md` or `memory.md`) in the current working directory.

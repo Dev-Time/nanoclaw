@@ -103,15 +103,40 @@ describe('formatMessages', () => {
   it('injects playbook content when provided', () => {
     const playbook = '### [RULE-001] Test Rule\n* Action: Test';
     const result = formatMessages([makeMsg()], TZ, playbook);
-    expect(result).toContain('<playbook>');
+    expect(result).toContain('<playbook_operational_reflexes>');
     expect(result).toContain(playbook);
-    expect(result).toContain('</playbook>');
+    expect(result).toContain('</playbook_operational_reflexes>');
     // Ensure it comes after context and before messages
     const contextIdx = result.indexOf('<context');
-    const playbookIdx = result.indexOf('<playbook>');
+    const playbookIdx = result.indexOf('<playbook_operational_reflexes>');
     const messagesIdx = result.indexOf('<messages>');
     expect(contextIdx).toBeLessThan(playbookIdx);
     expect(playbookIdx).toBeLessThan(messagesIdx);
+  });
+
+  it('injects memory content when provided', () => {
+    const memory = '### [User Preferences]\n- Preference: Tabs';
+    const result = formatMessages([makeMsg()], TZ, undefined, memory);
+    expect(result).toContain('<memory_facts_preferences>');
+    expect(result).toContain(memory);
+    expect(result).toContain('</memory_facts_preferences>');
+    // Ensure it comes after context and before messages
+    const contextIdx = result.indexOf('<context');
+    const memoryIdx = result.indexOf('<memory_facts_preferences>');
+    const messagesIdx = result.indexOf('<messages>');
+    expect(contextIdx).toBeLessThan(memoryIdx);
+    expect(memoryIdx).toBeLessThan(messagesIdx);
+  });
+
+  it('injects both playbook and memory content when provided', () => {
+    const playbook = '### [RULE-001] Rule';
+    const memory = '### [Facts] Fact';
+    const result = formatMessages([makeMsg()], TZ, playbook, memory);
+    expect(result).toContain('<playbook_operational_reflexes>');
+    expect(result).toContain('<memory_facts_preferences>');
+    const playbookIdx = result.indexOf('<playbook_operational_reflexes>');
+    const memoryIdx = result.indexOf('<memory_facts_preferences>');
+    expect(playbookIdx).toBeLessThan(memoryIdx);
   });
 
   it('escapes special characters in content', () => {

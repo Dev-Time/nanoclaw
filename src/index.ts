@@ -257,6 +257,21 @@ function readPlaybookContent(groupFolder: string): string {
   return '';
 }
 
+function readMemoryContent(groupFolder: string): string {
+  try {
+    const groupPath = resolveGroupFolderPath(groupFolder);
+    const memoryPath = path.join(groupPath, 'memory.md');
+    if (!fs.existsSync(memoryPath)) {
+      fs.writeFileSync(memoryPath, '');
+      return '';
+    }
+    return fs.readFileSync(memoryPath, 'utf8').trim();
+  } catch (err) {
+    logger.warn({ groupFolder, err }, 'Failed to read or initialize memory.md');
+  }
+  return '';
+}
+
 /** @internal */
 export async function processGroupMessages(slotKey: string): Promise<boolean> {
   const { chatJid, modelKey } = parseSlotKey(slotKey);
@@ -316,6 +331,8 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     }
 
     // --- Session command interception ---
+    const playbookContent = readPlaybookContent(group.folder);
+    const memoryContent = readMemoryContent(group.folder);
     const sessKey = sessionKey(group.folder, modelKey);
     const currentSavedAlias = getChatModel(chatJid) || undefined;
     const cmdResult = await handleSessionCommand({
@@ -335,8 +352,9 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
           runBackgroundMemoryExtraction(
             chatJid,
             group.folder,
-            (prompt) => runAgent(group, prompt, chatJid, undefined, modelKey),
+            (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
             TIMEZONE,
+            (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
           ),
         closeStdin: () => queue.closeStdin(slotKey),
         advanceCursor: (ts) => {
@@ -369,6 +387,8 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
         },
       },
       modelKey,
+      playbookContent,
+      memoryContent,
     });
 
     if (cmdResult.handled) {
@@ -436,8 +456,12 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
       }
     }
 
-    const playbookContent = readPlaybookContent(group.folder);
-    const prompt = formatMessages(missedMessages, TIMEZONE, playbookContent);
+    const prompt = formatMessages(
+      missedMessages,
+      TIMEZONE,
+      playbookContent,
+      memoryContent,
+    );
 
     // Advance cursor so the piping path in startMessageLoop won't re-fetch
     // these messages. Save the old cursor so we can roll back on error.
@@ -460,8 +484,9 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
         runBackgroundMemoryExtraction(
           chatJid,
           group.folder,
-          (prompt) => runAgent(group, prompt, chatJid, undefined, modelKey),
+          (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
           TIMEZONE,
+          (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
         ).catch((err) =>
           logger.warn(
             { groupFolder: group.folder, err },
@@ -639,12 +664,23 @@ export async function runAgent(
     modelKey,
   );
 
-  // Wrap onOutput to track session ID from streamed results
+  // Wrap onOutput to track session ID and autocompaction from streamed results
   const wrappedOnOutput = onOutput
     ? async (output: ContainerOutput) => {
         if (output.newSessionId) {
           sessions[sessKey] = output.newSessionId;
           setSession(sessKey, output.newSessionId);
+        }
+        if (output.autocompacted) {
+          runBackgroundMemoryExtraction(
+            chatJid,
+            group.folder,
+            (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
+            TIMEZONE,
+            (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
+          ).catch((err) =>
+            logger.warn({ groupFolder: group.folder, err }, 'Failed autocompact memory extraction'),
+          );
         }
         await onOutput(output);
       }
@@ -914,10 +950,12 @@ async function startMessageLoop(): Promise<void> {
           }
 
           const playbookContent = readPlaybookContent(group.folder);
+          const memoryContent = readMemoryContent(group.folder);
           const effectiveFormatted = formatMessages(
             messagesToSend,
             TIMEZONE,
             playbookContent,
+            memoryContent,
           );
 
           if (queue.sendMessage(slotKey, effectiveFormatted)) {

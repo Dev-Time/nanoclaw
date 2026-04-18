@@ -15,6 +15,7 @@ export function extractSessionCommand(
   const isCommand = (t: string) =>
     t === '/clear' ||
     t === '/compact' ||
+    t === '/memo' ||
     t === '/models' ||
     t === '/model' ||
     t.startsWith('/model ') ||
@@ -71,7 +72,12 @@ export interface SessionCommandDeps {
   runBackgroundMemoryExtraction: () => Promise<void>;
   closeStdin: () => void;
   advanceCursor: (timestamp: string) => void;
-  formatMessages: (msgs: NewMessage[], timezone: string) => string;
+  formatMessages: (
+    msgs: NewMessage[],
+    timezone: string,
+    playbookContent?: string,
+    memoryContent?: string,
+  ) => string;
   /** Whether the denied sender would normally be allowed to interact (for denial messages). */
   canSenderInteract: (msg: NewMessage) => boolean;
   /** Get available model aliases (for /models). */
@@ -105,6 +111,8 @@ export async function handleSessionCommand(opts: {
   timezone: string;
   deps: SessionCommandDeps;
   modelKey?: string;
+  playbookContent?: string;
+  memoryContent?: string;
 }): Promise<{ handled: false } | { handled: true; success: boolean }> {
   const {
     missedMessages,
@@ -114,6 +122,8 @@ export async function handleSessionCommand(opts: {
     timezone,
     deps,
     modelKey,
+    playbookContent,
+    memoryContent,
   } = opts;
 
   const cmdMsg = missedMessages.find(
@@ -218,7 +228,12 @@ export async function handleSessionCommand(opts: {
   // Send pre-compact messages to the agent so they're in the session context.
   if (preCompactMsgs.length > 0) {
     await deps.runBackgroundMemoryExtraction();
-    const prePrompt = deps.formatMessages(preCompactMsgs, timezone);
+    const prePrompt = deps.formatMessages(
+      preCompactMsgs,
+      timezone,
+      playbookContent,
+      memoryContent,
+    );
     let hadPreError = false;
     let preOutputSent = false;
 
@@ -263,6 +278,14 @@ export async function handleSessionCommand(opts: {
     await deps.sendMessage('Conversation cleared.');
     await deps.runBackgroundMemoryExtraction();
     deps.clearSession();
+    deps.advanceCursor(cmdMsg.timestamp);
+    return { handled: true, success: true };
+  }
+
+  // Handle /memo natively on the host to trigger a curation sweep.
+  if (command === '/memo') {
+    await deps.sendMessage('🧠 Triggering manual memory extraction...');
+    await deps.runBackgroundMemoryExtraction();
     deps.advanceCursor(cmdMsg.timestamp);
     return { handled: true, success: true };
   }

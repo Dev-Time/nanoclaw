@@ -14,6 +14,10 @@ describe('extractSessionCommand', () => {
     expect(extractSessionCommand('/compact', trigger)).toBe('/compact');
   });
 
+  it('detects bare /memo', () => {
+    expect(extractSessionCommand('/memo', trigger)).toBe('/memo');
+  });
+
   it('detects bare /clear', () => {
     expect(extractSessionCommand('/clear', trigger)).toBe('/clear');
   });
@@ -432,7 +436,12 @@ describe('handleSessionCommand', () => {
     });
     expect(result).toEqual({ handled: true, success: true });
     expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
-    expect(deps.formatMessages).toHaveBeenCalledWith([msgs[0]], 'UTC');
+    expect(deps.formatMessages).toHaveBeenCalledWith(
+      [msgs[0]],
+      'UTC',
+      undefined,
+      undefined,
+    );
     // Two runAgent calls: pre-compact + /compact
     expect(deps.runAgent).toHaveBeenCalledTimes(2);
     expect(deps.runAgent).toHaveBeenCalledWith(
@@ -466,6 +475,24 @@ describe('handleSessionCommand', () => {
     expect(deps.clearSession).toHaveBeenCalledTimes(1);
     expect(deps.runAgent).not.toHaveBeenCalled();
     expect(deps.sendMessage).toHaveBeenCalledWith('Conversation cleared.');
+  });
+
+  it('triggers memory extraction on /memo', async () => {
+    const deps = makeDeps();
+    const result = await handleSessionCommand({
+      missedMessages: [makeMsg('/memo')],
+      isMainGroup: true,
+      groupName: 'test',
+      triggerPattern: trigger,
+      timezone: 'UTC',
+      deps,
+    });
+    expect(result).toEqual({ handled: true, success: true });
+    expect(deps.sendMessage).toHaveBeenCalledWith(
+      '🧠 Triggering manual memory extraction...',
+    );
+    expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
+    expect(deps.advanceCursor).toHaveBeenCalledWith('100');
   });
 
   it('allows is_from_me sender in non-main group', async () => {
