@@ -21,6 +21,16 @@ def save_cursor(timestamp):
     with open(CURSOR_PATH, 'w') as f:
         f.write(timestamp)
 
+def truncate_large_strings(obj, max_len=2000):
+    if isinstance(obj, dict):
+        return {k: truncate_large_strings(v, max_len) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [truncate_large_strings(v, max_len) for v in obj]
+    elif isinstance(obj, str) and len(obj) > max_len:
+        return obj[:max_len] + f"... <truncated {len(obj) - max_len} more characters>"
+    else:
+        return obj
+
 def get_jsonl_events():
     files = sorted(glob.glob(os.path.join(PROJECTS_DIR, "*.jsonl")))
     events = []
@@ -32,6 +42,7 @@ def get_jsonl_events():
                         try:
                             event = json.loads(line)
                             if "timestamp" in event:
+                                event = truncate_large_strings(event)
                                 events.append(event)
                         except json.JSONDecodeError:
                             continue
