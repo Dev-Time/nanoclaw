@@ -184,7 +184,7 @@ export class GroupQueue {
    */
   closeStdin(slotKey: string): void {
     const state = this.getGroup(slotKey);
-    if (!state.active || !state.ipcFolder) return;
+    if (!state.ipcFolder) return;
 
     const inputDir = path.join(DATA_DIR, 'ipc', state.ipcFolder, 'input');
     try {

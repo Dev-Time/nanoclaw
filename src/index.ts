@@ -348,14 +348,17 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
           channel.setTyping?.(chatJid, typing) ?? Promise.resolve(),
         runAgent: (prompt, onOutput) =>
           runAgent(group, prompt, chatJid, onOutput, modelKey),
-        runBackgroundMemoryExtraction: () =>
-          runBackgroundMemoryExtraction(
-            chatJid,
-            group.folder,
-            (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
-            TIMEZONE,
-            (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
-          ),
+        runBackgroundMemoryExtraction: async () => {
+          queue.enqueueTask(slotKey, 'memory-extraction', () =>
+            runBackgroundMemoryExtraction(
+              chatJid,
+              group.folder,
+              (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
+              TIMEZONE,
+              (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
+            ),
+          );
+        },
         closeStdin: () => queue.closeStdin(slotKey),
         advanceCursor: (ts) => {
           lastAgentTimestamp[slotKey] = ts;
@@ -383,7 +386,7 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
         setChatShowThinking,
         clearSession: () => {
           delete sessions[sessKey];
-          deleteSession(group.folder);
+          deleteSession(sessKey);
         },
       },
       modelKey,
@@ -481,16 +484,13 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     const resetIdleTimer = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
-        runBackgroundMemoryExtraction(
-          chatJid,
-          group.folder,
-          (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
-          TIMEZONE,
-          (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
-        ).catch((err) =>
-          logger.warn(
-            { groupFolder: group.folder, err },
-            'Failed idle-timeout memory extraction',
+        queue.enqueueTask(slotKey, 'memory-extraction-idle', () =>
+          runBackgroundMemoryExtraction(
+            chatJid,
+            group.folder,
+            (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
+            TIMEZONE,
+            (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
           ),
         );
         logger.debug(
