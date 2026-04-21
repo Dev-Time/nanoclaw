@@ -435,7 +435,7 @@ describe('handleSessionCommand', () => {
       deps,
     });
     expect(result).toEqual({ handled: true, success: true });
-    expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
+    expect(deps.runBackgroundMemoryExtraction).not.toHaveBeenCalled();
     expect(deps.formatMessages).toHaveBeenCalledWith(
       [msgs[0]],
       'UTC',
@@ -469,9 +469,10 @@ describe('handleSessionCommand', () => {
       deps,
     });
     expect(result).toEqual({ handled: true, success: true });
-    expect(deps.runBackgroundMemoryExtraction).toHaveBeenCalled();
+    expect(deps.runBackgroundMemoryExtraction).not.toHaveBeenCalled();
     expect(deps.formatMessages).not.toHaveBeenCalled();
     // Host handles /clear natively, should NOT call runAgent
+    expect(deps.closeStdin).toHaveBeenCalledTimes(1);
     expect(deps.clearSession).toHaveBeenCalledTimes(1);
     expect(deps.runAgent).not.toHaveBeenCalled();
     expect(deps.sendMessage).toHaveBeenCalledWith('Conversation cleared.');

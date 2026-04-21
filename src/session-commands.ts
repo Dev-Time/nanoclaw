@@ -227,7 +227,6 @@ export async function handleSessionCommand(opts: {
 
   // Send pre-compact messages to the agent so they're in the session context.
   if (preCompactMsgs.length > 0) {
-    await deps.runBackgroundMemoryExtraction();
     const prePrompt = deps.formatMessages(
       preCompactMsgs,
       timezone,
@@ -276,7 +275,7 @@ export async function handleSessionCommand(opts: {
   // from the agent container (SDK doesn't have built-in clear).
   if (command === '/clear') {
     await deps.sendMessage('Conversation cleared.');
-    await deps.runBackgroundMemoryExtraction();
+    deps.closeStdin();
     deps.clearSession();
     deps.advanceCursor(cmdMsg.timestamp);
     return { handled: true, success: true };

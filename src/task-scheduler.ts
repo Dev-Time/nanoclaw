@@ -208,23 +208,6 @@ async function runTask(
           await deps.sendMessage(task.chat_jid, streamedOutput.result);
           scheduleClose();
         }
-        if (streamedOutput.autocompacted) {
-          runBackgroundMemoryExtraction(
-            task.chat_jid,
-            task.group_folder,
-            (prompt, onOutput) =>
-              runAgent(group, prompt, task.chat_jid, onOutput, modelKey),
-            TIMEZONE,
-            async (text) => {
-              await deps.sendMessage(task.chat_jid, text);
-            },
-          ).catch((err) =>
-            logger.warn(
-              { groupFolder: task.group_folder, err },
-              'Failed task-autocompact memory extraction',
-            ),
-          );
-        }
         if (streamedOutput.status === 'success') {
           deps.queue.notifyIdle(task.chat_jid);
           scheduleClose(); // Close promptly even when result is null (e.g. IPC-only tasks)

@@ -671,17 +671,6 @@ export async function runAgent(
           sessions[sessKey] = output.newSessionId;
           setSession(sessKey, output.newSessionId);
         }
-        if (output.autocompacted) {
-          runBackgroundMemoryExtraction(
-            chatJid,
-            group.folder,
-            (prompt, onOutput) => runAgent(group, prompt, chatJid, onOutput, modelKey),
-            TIMEZONE,
-            (text) => sendMessageAndStore(chatJid, text, ASSISTANT_NAME),
-          ).catch((err) =>
-            logger.warn({ groupFolder: group.folder, err }, 'Failed autocompact memory extraction'),
-          );
-        }
         await onOutput(output);
       }
     : undefined;
