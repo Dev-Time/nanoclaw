@@ -34,7 +34,6 @@ describe('Bot message storage and retrieval', () => {
     const messages = getMessagesSince(
       chatJid,
       '1970-01-01T00:00:00.000Z',
-      'Andy',
     );
     expect(messages).toHaveLength(1);
     expect(messages[0].id).toBe('bot-123');
@@ -72,7 +71,6 @@ describe('Bot message storage and retrieval', () => {
     const messages = getMessagesSince(
       chatJid,
       '1970-01-01T00:00:00.000Z',
-      'Andy',
     );
     expect(messages).toHaveLength(1);
     expect(messages[0].content).toBe(largeContent);

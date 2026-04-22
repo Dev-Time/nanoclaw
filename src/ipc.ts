@@ -182,6 +182,7 @@ export async function processTaskIpc(
     folder?: string;
     trigger?: string;
     requiresTrigger?: boolean;
+    model_key?: string;
     containerConfig?: RegisteredGroup['containerConfig'];
   },
   sourceGroup: string, // Verified identity from IPC directory
@@ -275,6 +276,7 @@ export async function processTaskIpc(
           schedule_type: scheduleType,
           schedule_value: data.schedule_value,
           context_mode: contextMode,
+          model_key: data.model_key || null,
           next_run: nextRun,
           status: 'active',
           created_at: new Date().toISOString(),
@@ -372,6 +374,8 @@ export async function processTaskIpc(
             | 'once';
         if (data.schedule_value !== undefined)
           updates.schedule_value = data.schedule_value;
+        if (data.model_key !== undefined)
+          updates.model_key = data.model_key || null;
 
         // Recompute next_run if schedule changed
         if (data.schedule_type || data.schedule_value) {

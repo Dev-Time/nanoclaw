@@ -29,7 +29,6 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
     const messages = getMessagesSince(
       chatJid,
       '2024-01-01T00:00:00.000Z',
-      'Andy',
     );
 
     // CURRENT BEHAVIOR: Now should have 1 message
@@ -55,7 +54,6 @@ describe('Reproduction: Bot messages from others are filtered out', () => {
     const messages = getMessagesSince(
       chatJid,
       '2024-01-01T00:00:00.000Z',
-      'Andy',
     );
 
     // CURRENT BEHAVIOR: Returns the message (expected for context/history)

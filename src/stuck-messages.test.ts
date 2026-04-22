@@ -109,7 +109,6 @@ describe('processGroupMessages loop and routing', () => {
     expect(db.getMessagesSince).toHaveBeenCalledWith(
       chatJid,
       expect.any(String),
-      'Andy',
       200,
     );
   });

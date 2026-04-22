@@ -384,7 +384,6 @@ export function getNewMessages(
 export function getMessagesSince(
   chatJid: string,
   sinceTimestamp: string,
-  botPrefix: string,
   limit: number = 200,
 ): NewMessage[] {
   // Include bot messages and self messages in the stream so the agent has context.

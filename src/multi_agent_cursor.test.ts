@@ -32,8 +32,8 @@ describe('Multi-agent cursor isolation', () => {
     const gemmaCursor = '1970-01-01T00:00:00.000Z';
 
     // Both see the user message
-    const andyMessages = getMessagesSince(chatJid, andyCursor, 'Andy');
-    const gemmaMessages = getMessagesSince(chatJid, gemmaCursor, 'Andy');
+    const andyMessages = getMessagesSince(chatJid, andyCursor);
+    const gemmaMessages = getMessagesSince(chatJid, gemmaCursor);
 
     expect(andyMessages).toHaveLength(1);
     expect(gemmaMessages).toHaveLength(1);
@@ -58,7 +58,7 @@ describe('Multi-agent cursor isolation', () => {
 
     // 3. Gemma runs. If Gemma had used Andy's cursor (the old behavior), she would miss context!
     // But with independent cursors, she still uses gemmaCursor.
-    const gemmaContext = getMessagesSince(chatJid, gemmaCursor, 'Andy');
+    const gemmaContext = getMessagesSince(chatJid, gemmaCursor);
 
     // Gemma should see both the user message and Andy's response!
     expect(gemmaContext).toHaveLength(2);

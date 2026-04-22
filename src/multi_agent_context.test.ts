@@ -57,7 +57,6 @@ describe('Multi-agent context sharing', () => {
     const messages = getMessagesSince(
       chatJid,
       '1970-01-01T00:00:00.000Z',
-      assistantName,
     );
 
     // VERIFY: Gemma's message is included in the DB results

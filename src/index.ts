@@ -294,7 +294,6 @@ export async function processGroupMessages(slotKey: string): Promise<boolean> {
     const missedMessages = getMessagesSince(
       chatJid,
       getOrRecoverCursor(slotKey),
-      ASSISTANT_NAME,
       MAX_MESSAGES_PER_PROMPT,
     );
 
@@ -923,7 +922,6 @@ async function startMessageLoop(): Promise<void> {
           const allPending = getMessagesSince(
             chatJid,
             currentCursor,
-            ASSISTANT_NAME,
             MAX_MESSAGES_PER_PROMPT,
           );
           const messagesToSend =
@@ -984,7 +982,6 @@ function recoverPendingMessages(): void {
     const pending = getMessagesSince(
       chatJid,
       getOrRecoverCursor(chatJid),
-      ASSISTANT_NAME,
       MAX_MESSAGES_PER_PROMPT,
     );
     if (pending.length > 0) {
@@ -1002,7 +999,6 @@ function recoverPendingMessages(): void {
       const aliasPending = getMessagesSince(
         chatJid,
         getOrRecoverCursor(slotKey),
-        ASSISTANT_NAME,
         MAX_MESSAGES_PER_PROMPT,
       );
       if (aliasPending.length > 0) {

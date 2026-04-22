@@ -19,6 +19,7 @@ const TASKS_DIR = path.join(IPC_DIR, 'tasks');
 const chatJid = process.env.NANOCLAW_CHAT_JID!;
 const groupFolder = process.env.NANOCLAW_GROUP_FOLDER!;
 const isMain = process.env.NANOCLAW_IS_MAIN === '1';
+const modelKey = process.env.NANOCLAW_MODEL_KEY || undefined;
 
 function writeIpcFile(dir: string, data: object): string {
   fs.mkdirSync(dir, { recursive: true });
@@ -197,6 +198,7 @@ SCHEDULE VALUE FORMAT (all times are LOCAL timezone):
       schedule_type: args.schedule_type,
       schedule_value: args.schedule_value,
       context_mode: args.context_mode || 'group',
+      model_key: modelKey,
       targetJid,
       createdBy: groupFolder,
       timestamp: new Date().toISOString(),
@@ -377,6 +379,11 @@ server.tool(
       .describe(
         'New script for the task. Set to empty string to remove the script.',
       ),
+    model_key: z
+      .string()
+      .nullable()
+      .optional()
+      .describe('New model alias for the task (e.g., "@gpt4"). Set to null to clear and use default.'),
   },
   async (args) => {
     // Validate schedule_value if provided
@@ -428,6 +435,7 @@ server.tool(
       data.schedule_type = args.schedule_type;
     if (args.schedule_value !== undefined)
       data.schedule_value = args.schedule_value;
+    if (args.model_key !== undefined) data.model_key = args.model_key;
 
     writeIpcFile(TASKS_DIR, data);
 
